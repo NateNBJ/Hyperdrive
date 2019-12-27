@@ -53,8 +53,6 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
                 throttleBurnLevel = Global.getSector().getCampaignUI().isFollowingDirectCommand()
                     ? true : !throttleBurnLevel;
 
-                Global.getSector().getCampaignUI().addMessage("" + Misc.getDistance(pf.getLocation(), pf.getMoveDestination()));
-
                 String message = null;
 
                 if(throttleBurnLevel) {
@@ -88,7 +86,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
     @Override
     public boolean isDone() {
-        return false;
+        return ModPlugin.REMOVE_ALL_DATA_AND_FEATURES;
     }
 
     @Override
@@ -125,7 +123,8 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
                 if(facingTarget && distantEnough && currentlyTooFast) {
                     if(Misc.getDiff(pf.getVelocity(), delta).length() > Global.getSettings().getSpeedPerBurnLevel() * 2) {
-                        delta.set(pf.getVelocity()).scale(0.99f);
+                        float newSpeed = (pf.getVelocity().length() - pf.getAcceleration() * amount * 3);
+                        delta.set(pf.getVelocity()).scale(newSpeed / pf.getVelocity().length());
                     }
 
                     pf.setVelocity(delta.x, delta.y);

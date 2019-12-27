@@ -43,6 +43,7 @@ public class ModPlugin extends BaseModPlugin {
             THROTTLE_BURN_LEVEL_ACTIVATION_KEY = 17;
 
     public static boolean
+            REMOVE_ALL_DATA_AND_FEATURES = false,
             THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = false,
             SHOW_WARP_PULSE_ANIMATION = true,
             USABLE_IN_HYPERSPACE = true,
@@ -53,6 +54,8 @@ public class ModPlugin extends BaseModPlugin {
             SHOW_DEBUG_INFO_IN_DEV_MODE = false;
 
     public static void ensureReducedTimeLimitForMissions(boolean includeOldMissions) {
+        if(REMOVE_ALL_DATA_AND_FEATURES) return;
+
         IntelManagerAPI manager = Global.getSector().getIntelManager();
 
         for(Map.Entry<Class, Float> entry : NORMAL_MISSION_DURATIONS.entrySet()) {
@@ -104,7 +107,7 @@ public class ModPlugin extends BaseModPlugin {
         }
     }
     public static boolean isTestingModeActive() {
-        return SHOW_DEBUG_INFO_IN_DEV_MODE && Global.getSettings().isDevMode();
+        return !REMOVE_ALL_DATA_AND_FEATURES && SHOW_DEBUG_INFO_IN_DEV_MODE && Global.getSettings().isDevMode();
     }
 
     private CampaignScript script;
@@ -113,15 +116,13 @@ public class ModPlugin extends BaseModPlugin {
     @Override
     public void onGameLoad(boolean newGame) {
         try {
-            Global.getSector().addTransientScript(script = new CampaignScript());
-            Global.getSector().getListenerManager().addListener(script, true);
+            if(!REMOVE_ALL_DATA_AND_FEATURES) {
+                Global.getSector().addTransientScript(script = new CampaignScript());
+                Global.getSector().getListenerManager().addListener(script, true);
 
-            ensureReducedTimeLimitForMissions(true);
-
-            if (!Global.getSector().getPlayerFleet().hasAbility(ABILITY_ID)) {
-                Global.getSector().getCharacterData().addAbility(ABILITY_ID);
-
-                ensureReducedTimeLimitForMissions(true);
+                if (!Global.getSector().getPlayerFleet().hasAbility(ABILITY_ID)) {
+                    Global.getSector().getCharacterData().addAbility(ABILITY_ID);
+                }
             }
 
             if (!settingsAlreadyRead) {
@@ -143,37 +144,51 @@ public class ModPlugin extends BaseModPlugin {
                     NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = cfg.getBoolean("npcFleetsCanUseToInterceptPlayer");
 
                     SHOW_DEBUG_INFO_IN_DEV_MODE = cfg.getBoolean("showDebugInfoInDevMode");
+                    REMOVE_ALL_DATA_AND_FEATURES = cfg.getBoolean("removeAllDataAndFeatures");
 
                     THROTTLE_BURN_LEVEL_ACTIVATION_KEY = cfg.getInt("throttleBurnActivationKey");
                     THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = cfg.getBoolean("throttleBurnLevelByDefaultDuringAutopilot");
                 } catch (Exception e) { reportCrash(e); }
 
-                PersonBountyIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
+                if(!REMOVE_ALL_DATA_AND_FEATURES) {
+                    PersonBountyIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
 
-                ModManagerAPI mm = Global.getSettings().getModManager();
+                    ModManagerAPI mm = Global.getSettings().getModManager();
 
-                if(mm.isModEnabled("sun_starship_legends")) {
-                    try {
-                        FamousDerelictIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
-                    } catch (Exception e) { }
-                }
+                    if (mm.isModEnabled("sun_starship_legends")) {
+                        try {
+                            FamousDerelictIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
+                        } catch (Exception e) {
+                        }
+                    }
 
-                if(mm.isModEnabled("vayrasector")) {
-                    try {
-                        VayraModPlugin.BOUNTY_DURATION *= MISSION_TIME_LIMIT_MULT;
-                    } catch (Exception e) { }
+                    if (mm.isModEnabled("vayrasector")) {
+                        try {
+                            VayraModPlugin.BOUNTY_DURATION *= MISSION_TIME_LIMIT_MULT;
+                        } catch (Exception e) {
+                        }
+                    }
                 }
 
                 settingsAlreadyRead = true;
             }
+
+            if(REMOVE_ALL_DATA_AND_FEATURES) {
+                beforeGameSave();
+                Global.getSector().getCharacterData().removeAbility(ABILITY_ID);
+            }
+
+            ensureReducedTimeLimitForMissions(true);
         } catch (Exception e) { reportCrash(e); }
     }
 
     @Override
     public void beforeGameSave() {
         try {
-            Global.getSector().removeTransientScript(script);
-            Global.getSector().removeListener(script);
+            if(script != null) {
+                Global.getSector().removeTransientScript(script);
+                Global.getSector().removeListener(script);
+            }
             Global.getSector().removeScriptsOfClass(CampaignScript.class);
         } catch (Exception e) { reportCrash(e); }
     }
@@ -181,8 +196,10 @@ public class ModPlugin extends BaseModPlugin {
     @Override
     public void afterGameSave() {
         try {
-            Global.getSector().addTransientScript(script = new CampaignScript());
-            Global.getSector().getListenerManager().addListener(script, true);
+            if(!REMOVE_ALL_DATA_AND_FEATURES) {
+                Global.getSector().addTransientScript(script = new CampaignScript());
+                Global.getSector().getListenerManager().addListener(script, true);
+            }
         } catch (Exception e) { reportCrash(e); }
     }
 }

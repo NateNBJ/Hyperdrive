@@ -60,6 +60,10 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
 
     @Override
     public void advance(float days) {
+        if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES) {
+            fleet.removeAbility(HyperdriveAbility.ID);
+            return;
+        }
 
         interval.advance(days * AI_FREQUENCY_MULT);
 

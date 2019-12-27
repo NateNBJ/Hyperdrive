@@ -42,7 +42,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			BASE_CR_COST_MULT = 0.2f,
 			PULSE_DISTANCE_TIL_FADE = 5,
 			PULSE_AMOUNT = 40 * 85,
-			MOMENTUM_CARRY_DISTANCE = 1500f,
+			MOMENTUM_CARRY_DISTANCE = 1750f,
 			VELOCITY_LIMIT;
 	public static final int
 			MIN_BURN_LEVEL = 3;
@@ -240,7 +240,8 @@ for(Pulse pulse : pulses) {
 			}
 
 			tooltip.addPara("Reduces the combat readiness of all ships, costing up to %s supplies to recover. "
-					 + "Also increases the range at which your fleet can be detected by %s units.", pad, highlight,
+							+ "Also increases the range at which your fleet can be detected by %s units, revealing your "
+							+ "identity to fleets within range.", pad, highlight,
 					Misc.getRoundedValueMaxOneAfterDecimal(computeSupplyCost()), ((int)ModPlugin.SENSOR_PROFILE_INCREASE) + "");
 
 			if(!isActiveOrInProgress()) {
@@ -369,9 +370,9 @@ for(Pulse pulse : pulses) {
 
 			if(fleet.isPlayerFleet()) fleet.clearAssignments();
 
-			fleet.setMoveDestination(fleet.getLocation().x, fleet.getLocation().y);
+			fleet.setMoveDestination(fleet.getLocation().x + fleet.getVelocity().x * 150,
+					fleet.getLocation().y + fleet.getVelocity().y * 150);
 			fleet.getStats().getFuelUseHyperMult().unmodify(getModId());
-			//fleet.getStats().getDetectedRangeMod().unmodify(getModId());
 			fleet.getStats().getAccelerationMult().unmodify(getModId());
 			fleet.getStats().removeTemporaryMod(getModId());
 			fleet.getCommanderStats().getDynamic().getStat(Stats.NAVIGATION_PENALTY_MULT).unmodify(getModId());
