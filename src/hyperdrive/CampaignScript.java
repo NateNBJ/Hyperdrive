@@ -4,6 +4,7 @@ import com.fs.starfarer.api.EveryFrameScript;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.BaseCampaignEventListener;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
+import com.fs.starfarer.api.campaign.CampaignUIAPI;
 import com.fs.starfarer.api.campaign.SectorEntityToken;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
@@ -22,6 +23,7 @@ import static hyperdrive.campaign.abilities.HyperdriveAbility.ID;
 
 public class CampaignScript extends BaseCampaignEventListener implements EveryFrameScript, CampaignInputListener {
     boolean throttleBurnLevel = false, skipThrottleForOneFrame = false;
+    float inputCooldown = 0;
 
     boolean tooCloseForWarp() {
         CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
@@ -44,34 +46,41 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
     @Override
     public void processCampaignInputPreCore(List<InputEventAPI> events) {
         CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
+        CampaignUIAPI ui = Global.getSector().getCampaignUI();
         SectorEntityToken target = Global.getSector().getUIData().getCourseTarget();
 
-        if(pf == null || target == null) return;
+        if(inputCooldown > 0 || pf == null || target == null || ui == null || ui.isShowingDialog() || ui.isShowingMenu()
+                || !(ui.getCurrentCoreTab() == null) || Global.getSector().isInNewGameAdvance()) {
+
+            return;
+        }
 
         for (InputEventAPI e : events) {
             if (!e.isConsumed() && e.isKeyDownEvent() && e.getEventValue() == ModPlugin.THROTTLE_BURN_LEVEL_ACTIVATION_KEY) {
-                throttleBurnLevel = Global.getSector().getCampaignUI().isFollowingDirectCommand()
+                throttleBurnLevel = ui.isFollowingDirectCommand()
                     ? true : !throttleBurnLevel;
 
                 String message = null;
 
                 if(throttleBurnLevel) {
-                    if (Global.getSector().getCampaignUI().isFollowingDirectCommand()) {
-                        Global.getSector().getCampaignUI().setFollowingDirectCommand(false);
+                    if (ui.isFollowingDirectCommand()) {
+                        ui.setFollowingDirectCommand(false);
                         skipThrottleForOneFrame = true;
                     } else if (tooCloseForWarp()) {
                         throttleBurnLevel = false;
                         message = "Too close to warp";
                     } else {
-                        message = "Throttling burn for hyperwarp jump to " + target.getName();
+                        message = "Throttling burn for hyperwarp jump to " + target.getName().split(",")[0];
                     }
                 } else {
                     message = "Resuming max burn";
                 }
 
                 if(message != null) {
-                    Global.getSector().getCampaignUI().getMessageDisplay().addMessage(message);
+                    ui.getMessageDisplay().addMessage(message);
                 }
+
+                inputCooldown = 0.1f;
 
                 break;
             }
@@ -98,6 +107,8 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
     public void advance(float amount) {
         try {
             if(ModPlugin.isTestingModeActive()) showHoveredFleetAIInfo();
+
+            inputCooldown = Math.max(-1, inputCooldown - amount);
 
             if(Global.getSector().isPaused()) return;
 
