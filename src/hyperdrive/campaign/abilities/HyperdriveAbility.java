@@ -103,6 +103,10 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			} else if (isOnCooldown()) {
 				fleet.getStats().getDetectedRangeMod().modifyFlat(getModId(), ModPlugin.SENSOR_PROFILE_INCREASE
 						* (float) Math.pow(1 - getCooldownFraction(), 0.5f), "Hyperwarp jump");
+
+				if(fleet.isInHyperspaceTransition() && getCooldownFraction() > 0.25f) {
+					fleet.getAbility(ID).setCooldownLeft(0);
+				}
 			} else {
 				fleet.getStats().getDetectedRangeMod().unmodify(getModId());
 			}
@@ -137,27 +141,27 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			Vector2f startPoint = new Vector2f(fleet.getLocation())
 					.translate(forwardOffset.x, forwardOffset.y);
 
-for(Pulse pulse : pulses) {
-	float distanceFromStart = Misc.getDistance(startPoint, pulse.center);
-	float distanceFromFleet = Misc.getDistance(fleet.getLocation(), pulse.center);
-	float progress = distanceFromStart / (PULSE_DISTANCE_TIL_FADE * (20 + fleet.getRadius()));
-	boolean outOfPlace = distanceFromFleet > distanceFromStart
-			&& Misc.isInArc(fleet.getFacing(), 180, startPoint, pulse.center);
+			for(Pulse pulse : pulses) {
+				float distanceFromStart = Misc.getDistance(startPoint, pulse.center);
+				float distanceFromFleet = Misc.getDistance(fleet.getLocation(), pulse.center);
+				float progress = distanceFromStart / (PULSE_DISTANCE_TIL_FADE * (20 + fleet.getRadius()));
+				boolean outOfPlace = distanceFromFleet > distanceFromStart
+						&& Misc.isInArc(fleet.getFacing(), 180, startPoint, pulse.center);
 
-	if(progress > 1 || outOfPlace) {
-		pulsesToRemove.add(pulse);
-		continue;
-	}
+				if(progress > 1 || outOfPlace) {
+					pulsesToRemove.add(pulse);
+					continue;
+				}
 
-	float scalor = (float)Math.pow(progress, 0.4f);
-	Vector2f size = (Vector2f) new Vector2f(minWaveSize).scale(scalor * 5.0f);
+				float scalor = (float)Math.pow(progress, 0.4f);
+				Vector2f size = (Vector2f) new Vector2f(minWaveSize).scale(scalor * 5.0f);
 
-	sprite.setSize(size.x, size.y);
-	sprite.setCenter(sprite.getWidth() / 2f, sprite.getHeight() / 2f);
-	sprite.setAngle(pulseFacing + 90);
-	sprite.setAlphaMult(0.2f * (1 - progress));
-	sprite.renderAtCenter(pulse.center.x, pulse.center.y);
-}
+				sprite.setSize(size.x, size.y);
+				sprite.setCenter(sprite.getWidth() / 2f, sprite.getHeight() / 2f);
+				sprite.setAngle(pulseFacing + 90);
+				sprite.setAlphaMult(0.2f * (1 - progress));
+				sprite.renderAtCenter(pulse.center.x, pulse.center.y);
+			}
 
 			for(Pulse pulse : pulsesToRemove) pulses.remove(pulse);
 		} catch (Exception e) { reportCrash(e); }
@@ -214,7 +218,10 @@ for(Pulse pulse : pulses) {
 			tooltip.addTitle(spec.getName());
 
 			float pad = 10f;
-			int bl = (int)Math.floor(fleet.getCurrBurnLevel() - 1);
+			//int bl = (int)Math.ceil(fleet.getCurrBurnLevel() - 0.99f);
+			//float bl = Misc.getBurnLevelForSpeed(fleet.getVelocity().length());
+			//float bl = fleet.getCurrBurnLevel();
+			float bl = Misc.getRounded(Misc.getFractionalBurnLevelForSpeed(fleet.getVelocity().length()));
 			float requiredFuel = computeFuelCost(bl * getDistancePerBurn());
 			float fuel = fleet.getCargo().getFuel();
 
@@ -228,7 +235,7 @@ for(Pulse pulse : pulses) {
 							Misc.getRoundedValueMaxOneAfterDecimal(fuel),
 							Misc.getRoundedValueMaxOneAfterDecimal(bl * ModPlugin.LIGHTYEARS_JUMPED_PER_BURN_LEVEL * (fuel / requiredFuel)));
 				} else {
-					String unitDesc = fleet.isInHyperspace() && requiredFuel > 0
+					String unitDesc = requiredFuel > 0
 							? "%s light-years, consuming %s fuel."
 							: "%s light-years.";
 
@@ -416,11 +423,14 @@ for(Pulse pulse : pulses) {
 		return fuel >= requiredFuel;
 	}
 	float computeFuelCost(float distance) {
-		if (!fleet.isInHyperspace() || fleet.isAIMode()) return 0f;
+		if (fleet.isAIMode()) return 0f;
 
 		float distanceInLY = distance / Global.getSettings().getUnitsPerLightYear();
+		float consumptionMult = fleet.isInHyperspace()
+				? ModPlugin.FUEL_CONSUMPTION_MULT
+				: ModPlugin.FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE;
 
-		return fleet.getLogistics().getFuelCostPerLightYear() * distanceInLY * ModPlugin.FUEL_CONSUMPTION_MULT;
+		return fleet.getLogistics().getFuelCostPerLightYear() * distanceInLY * consumptionMult;
 	}
 	float computeSupplyCost() {
 		if (ModPlugin.CR_CONSUMPTION_MULT <= 0) return 0f;

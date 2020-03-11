@@ -2,10 +2,7 @@ package hyperdrive;
 
 import com.fs.starfarer.api.EveryFrameScript;
 import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.campaign.BaseCampaignEventListener;
-import com.fs.starfarer.api.campaign.CampaignFleetAPI;
-import com.fs.starfarer.api.campaign.CampaignUIAPI;
-import com.fs.starfarer.api.campaign.SectorEntityToken;
+import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
 import com.fs.starfarer.api.campaign.listeners.CampaignInputListener;
@@ -22,14 +19,18 @@ import static hyperdrive.ModPlugin.reportCrash;
 import static hyperdrive.campaign.abilities.HyperdriveAbility.ID;
 
 public class CampaignScript extends BaseCampaignEventListener implements EveryFrameScript, CampaignInputListener {
-    boolean throttleBurnLevel = false, skipThrottleForOneFrame = false;
+    boolean throttleBurnLevel = false, skipThrottleForOneFrame = false, distantEnoughLastFrame = true;
     float inputCooldown = 0;
 
     boolean tooCloseForWarp() {
         CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
-
         float dist = Misc.getDistance(pf.getLocation(), pf.getMoveDestination());
         float minDist = HyperdriveAbility.getMinimumJumpDistance() + HyperdriveAbility.MOMENTUM_CARRY_DISTANCE;
+
+        if(dist < minDist && (pf.isInHyperspace() || pf.isInHyperspaceTransition())) {
+            SectorEntityToken target = Global.getSector().getUIData().getCourseTarget();
+            dist = Math.max(dist, Misc.getDistance(pf.getLocationInHyperspace(), target.getLocationInHyperspace()));
+        }
 
         return dist < minDist;
     }
@@ -56,10 +57,10 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
         }
 
         for (InputEventAPI e : events) {
-            if (!e.isConsumed() && e.isKeyDownEvent() && e.getEventValue() == ModPlugin.THROTTLE_BURN_LEVEL_ACTIVATION_KEY) {
-                throttleBurnLevel = ui.isFollowingDirectCommand()
-                    ? true : !throttleBurnLevel;
+            if (!e.isConsumed() && e.isKeyDownEvent() && e.getEventValue() == ModPlugin.THROTTLE_BURN_LEVEL_ACTIVATION_KEY
+                    && inputCooldown <= 0) {
 
+                throttleBurnLevel = ui.isFollowingDirectCommand() ? true : !throttleBurnLevel;
                 String message = null;
 
                 if(throttleBurnLevel) {
@@ -140,6 +141,12 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
                     pf.setVelocity(delta.x, delta.y);
                 }
+
+                if(distantEnoughLastFrame && !distantEnough) {
+                    Global.getSector().getCampaignUI().getMessageDisplay().addMessage("Too close to warp - resuming max burn");
+                }
+
+                distantEnoughLastFrame = distantEnough;
             }
         } catch (Exception e) { reportCrash(e); }
     }

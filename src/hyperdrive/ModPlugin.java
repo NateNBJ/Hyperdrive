@@ -37,6 +37,7 @@ public class ModPlugin extends BaseModPlugin {
             FLEET_INTERFERENCE_RANGE_MULT = 1,
             CR_CONSUMPTION_MULT = 1,
             FUEL_CONSUMPTION_MULT = 1,
+            FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = 0,
             MISSION_TIME_LIMIT_MULT = 0.5f;
 
     public static int
@@ -134,6 +135,7 @@ public class ModPlugin extends BaseModPlugin {
                     FLEET_INTERFERENCE_RANGE_MULT = (float) cfg.getDouble("fleetInterferenceRangeMult");
                     CR_CONSUMPTION_MULT = (float) cfg.getDouble("crConsumptionMult");
                     FUEL_CONSUMPTION_MULT = (float) cfg.getDouble("fuelConsumptionMult");
+                    FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = (float) cfg.getDouble("fuelConsumptionMultInNormalSpace");
                     MISSION_TIME_LIMIT_MULT = (float) cfg.getDouble("missionTimeLimitMult");
 
                     SHOW_WARP_PULSE_ANIMATION = cfg.getBoolean("showWarpPulseAnimation");
@@ -188,6 +190,7 @@ public class ModPlugin extends BaseModPlugin {
             if(script != null) {
                 Global.getSector().removeTransientScript(script);
                 Global.getSector().removeListener(script);
+                Global.getSector().getListenerManager().removeListener(script);
             }
             Global.getSector().removeScriptsOfClass(CampaignScript.class);
         } catch (Exception e) { reportCrash(e); }
