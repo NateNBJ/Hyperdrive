@@ -52,7 +52,13 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		VELOCITY_LIMIT = 60 * Global.getSettings().getSpeedPerBurnLevel();
 	}
 
-	SpriteAPI sprite = null;
+	transient private SpriteAPI sprite;
+	transient private SoundAPI chargeSound;
+
+	List<Pulse> pulses = new LinkedList<>();
+	CampaignFleetAPI fleet = null;
+	SectorEntityToken token = null;
+
     boolean transitionStarted = false;
     Vector2f directionAtActivation = null;
     Vector2f forwardOffset = new Vector2f();
@@ -60,13 +66,9 @@ public class HyperdriveAbility extends BaseDurationAbility {
     Vector2f fleetLocationLastFrame = new Vector2f();
     float initialVelocity = 0;
     float timeSinceStart = 0;
-	SectorEntityToken token = null;
 	int pulsesSpawned = 0;
 	float pulseFacing = 0;
-	List<Pulse> pulses = new LinkedList<>();
 	Vector2f minWaveSize = new Vector2f(), originalSpriteSize = new Vector2f();
-	CampaignFleetAPI fleet = null;
-	SoundAPI chargeSound = null;
 
 	public SectorEntityToken getDestinationToken() {
 		return token;
@@ -104,7 +106,11 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				fleet.getStats().getDetectedRangeMod().modifyFlat(getModId(), ModPlugin.SENSOR_PROFILE_INCREASE
 						* (float) Math.pow(1 - getCooldownFraction(), 0.5f), "Hyperwarp jump");
 
-				if(fleet.isInHyperspaceTransition() && getCooldownFraction() > 0.25f) {
+				if(fleet.isPlayerFleet() && getCooldownFraction() > 0f && getCooldownFraction() < 0.15f) {
+					// Override the functionality of hyperspace transitions that moves the fleet to the jump point
+					fleet.setMoveDestination(fleet.getLocation().x + fleet.getVelocity().x * 1000,
+							fleet.getLocation().y + fleet.getVelocity().y * 1000);
+				} else if(fleet.isInHyperspaceTransition() && getCooldownFraction() > 0.25f) {
 					fleet.getAbility(ID).setCooldownLeft(0);
 				}
 			} else {
@@ -218,10 +224,12 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			tooltip.addTitle(spec.getName());
 
 			float pad = 10f;
+			// TODO - Update to use displayed burn level
+			int bl = (int)Math.floor(fleet.getCurrBurnLevel() - 1);
 			//int bl = (int)Math.ceil(fleet.getCurrBurnLevel() - 0.99f);
 			//float bl = Misc.getBurnLevelForSpeed(fleet.getVelocity().length());
 			//float bl = fleet.getCurrBurnLevel();
-			float bl = Misc.getRounded(Misc.getFractionalBurnLevelForSpeed(fleet.getVelocity().length()));
+			//float bl = Misc.getRounded(Misc.getFractionalBurnLevelForSpeed(fleet.getVelocity().length()));
 			float requiredFuel = computeFuelCost(bl * getDistancePerBurn());
 			float fuel = fleet.getCargo().getFuel();
 
@@ -239,10 +247,16 @@ public class HyperdriveAbility extends BaseDurationAbility {
 							? "%s light-years, consuming %s fuel."
 							: "%s light-years.";
 
-					tooltip.addPara("At the current burn level of %s, the fleet will jump forward by " + unitDesc, pad,
-							highlight, bl + "",
+					tooltip.addPara("At the current burn level, the fleet will jump forward by " + unitDesc, pad,
+							highlight,
 							Misc.getRoundedValueMaxOneAfterDecimal(bl * ModPlugin.LIGHTYEARS_JUMPED_PER_BURN_LEVEL),
 							Misc.getRoundedValueMaxOneAfterDecimal(requiredFuel));
+
+					// TODO - Update to show displayed burn level
+//					tooltip.addPara("At the current burn level of %s, the fleet will jump forward by " + unitDesc, pad,
+//							highlight, bl + "",
+//							Misc.getRoundedValueMaxOneAfterDecimal(bl * ModPlugin.LIGHTYEARS_JUMPED_PER_BURN_LEVEL),
+//							Misc.getRoundedValueMaxOneAfterDecimal(requiredFuel));
 				}
 			}
 
@@ -377,8 +391,6 @@ public class HyperdriveAbility extends BaseDurationAbility {
 
 			if(fleet.isPlayerFleet()) fleet.clearAssignments();
 
-			fleet.setMoveDestination(fleet.getLocation().x + fleet.getVelocity().x * 150,
-					fleet.getLocation().y + fleet.getVelocity().y * 150);
 			fleet.getStats().getFuelUseHyperMult().unmodify(getModId());
 			fleet.getStats().getAccelerationMult().unmodify(getModId());
 			fleet.getStats().removeTemporaryMod(getModId());
@@ -400,7 +412,6 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		fleet.setNoEngaging(2.5f);
 		activeDaysLeft = activeDaysLeft > getDeactivationDays() ? getDeactivationDays() : activeDaysLeft;
 		if(fleet.isPlayerFleet()) fleet.clearAssignments();
-
 	}
 	List<FleetMemberAPI> getNonReadyShips() {
 		List<FleetMemberAPI> result = new ArrayList<FleetMemberAPI>();

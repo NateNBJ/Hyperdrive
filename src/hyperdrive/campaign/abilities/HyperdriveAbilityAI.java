@@ -124,7 +124,6 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
                     case INTERCEPT:
                         isBusyWithOtherThings = !(fleet.getCurrentAssignment().getTarget() != null
                             && fleet.getCurrentAssignment().getTarget().isPlayerFleet());
-                        // TODO - Reduce likelihood to do this?
                         break;
                 }
             } else if(wantsToCatchUpWithAlly) isBusyWithOtherThings = false;
