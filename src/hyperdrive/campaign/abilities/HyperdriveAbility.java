@@ -104,11 +104,13 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				fleet.getStats().getDetectedRangeMod().modifyFlat(getModId(), ModPlugin.SENSOR_PROFILE_INCREASE
 						* (float) Math.pow(1 - getCooldownFraction(), 0.5f), "Hyperwarp jump");
 
-				if(fleet.isPlayerFleet() && getCooldownFraction() > 0f && getCooldownFraction() < 0.15f) {
+				if(fleet.isPlayerFleet() && getCooldownFraction() > 0f && getCooldownFraction() < 0.25f) {
 					// Override the functionality of hyperspace transitions that moves the fleet to the jump point
 					fleet.setMoveDestination(fleet.getLocation().x + fleet.getVelocity().x * 1000,
 							fleet.getLocation().y + fleet.getVelocity().y * 1000);
-				} else if(fleet.isInHyperspaceTransition() && getCooldownFraction() > 0.25f) {
+				}
+
+				if(fleet.isInHyperspaceTransition() && getCooldownFraction() > 0.25f) {
 					fleet.getAbility(ID).setCooldownLeft(0);
 				}
 			} else {
