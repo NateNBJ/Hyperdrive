@@ -52,13 +52,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		VELOCITY_LIMIT = 60 * Global.getSettings().getSpeedPerBurnLevel();
 	}
 
-	transient private SpriteAPI sprite;
-	transient private SoundAPI chargeSound;
-
-	List<Pulse> pulses = new LinkedList<>();
-	CampaignFleetAPI fleet = null;
-	SectorEntityToken token = null;
-
+	SpriteAPI sprite = null;
     boolean transitionStarted = false;
     Vector2f directionAtActivation = null;
     Vector2f forwardOffset = new Vector2f();
@@ -66,9 +60,13 @@ public class HyperdriveAbility extends BaseDurationAbility {
     Vector2f fleetLocationLastFrame = new Vector2f();
     float initialVelocity = 0;
     float timeSinceStart = 0;
+	SectorEntityToken token = null;
 	int pulsesSpawned = 0;
 	float pulseFacing = 0;
+	List<Pulse> pulses = new LinkedList<>();
 	Vector2f minWaveSize = new Vector2f(), originalSpriteSize = new Vector2f();
+	CampaignFleetAPI fleet = null;
+	transient SoundAPI chargeSound = null;
 
 	public SectorEntityToken getDestinationToken() {
 		return token;
@@ -224,12 +222,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			tooltip.addTitle(spec.getName());
 
 			float pad = 10f;
-			// TODO - Update to use displayed burn level
-			int bl = (int)Math.floor(fleet.getCurrBurnLevel() - 1);
-			//int bl = (int)Math.ceil(fleet.getCurrBurnLevel() - 0.99f);
-			//float bl = Misc.getBurnLevelForSpeed(fleet.getVelocity().length());
-			//float bl = fleet.getCurrBurnLevel();
-			//float bl = Misc.getRounded(Misc.getFractionalBurnLevelForSpeed(fleet.getVelocity().length()));
+			int bl = (int)Math.floor(fleet.getCurrBurnLevel() - 1); // TODO - Update to use displayed burn level
 			float requiredFuel = computeFuelCost(bl * getDistancePerBurn());
 			float fuel = fleet.getCargo().getFuel();
 
