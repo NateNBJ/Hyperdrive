@@ -13,7 +13,6 @@ import com.fs.starfarer.api.impl.campaign.abilities.BaseDurationAbility;
 import com.fs.starfarer.api.impl.campaign.abilities.InterdictionPulseAbility;
 import com.fs.starfarer.api.impl.campaign.ids.Pings;
 import com.fs.starfarer.api.impl.campaign.ids.Stats;
-import com.fs.starfarer.api.util.IntervalUtil;
 import com.fs.starfarer.campaign.CampaignEngine;
 import hyperdrive.CampaignScript;
 import org.lwjgl.util.vector.Vector2f;
@@ -52,7 +51,6 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		VELOCITY_LIMIT = 60 * Global.getSettings().getSpeedPerBurnLevel();
 	}
 
-	SpriteAPI sprite = null;
     boolean transitionStarted = false;
     Vector2f directionAtActivation = null;
     Vector2f forwardOffset = new Vector2f();
@@ -67,6 +65,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 	Vector2f minWaveSize = new Vector2f(), originalSpriteSize = new Vector2f();
 	CampaignFleetAPI fleet = null;
 	transient SoundAPI chargeSound = null;
+	transient SpriteAPI sprite = null;
 
 	public SectorEntityToken getDestinationToken() {
 		return token;
@@ -404,7 +403,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		}
 
 		Global.getSector().addPing(fleet, Pings.SENSOR_BURST);
-		fleet.setNoEngaging(2.5f);
+		fleet.setNoEngaging(3.0f);
 		activeDaysLeft = activeDaysLeft > getDeactivationDays() ? getDeactivationDays() : activeDaysLeft;
 		if(fleet.isPlayerFleet()) fleet.clearAssignments();
 	}
