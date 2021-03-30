@@ -15,6 +15,8 @@ import hyperdrive.CampaignScript;
 import org.lwjgl.util.vector.Vector2f;
 import hyperdrive.ModPlugin;
 
+import static hyperdrive.ModPlugin.NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY;
+
 public class HyperdriveAbilityAI extends BaseAbilityAI {
     public static final float AI_FREQUENCY_MULT = 0.5f;
 
@@ -109,8 +111,10 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
                     mem.set(MemFlags.MEMORY_KEY_SAW_PLAYER_WITH_TRANSPONDER_ON, true, 7 + (float) Math.random() * 7);
                 }
                 break;
-            case COMPOSITION_DETAILS: isVisibleEnough = Math.random() < 0.5; break;
-            case SENSOR_CONTACT: isVisibleEnough = Math.random() < 0.25; break;
+            case COMPOSITION_DETAILS:
+                isVisibleEnough = NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY && Math.random() < 0.5; break;
+            case SENSOR_CONTACT:
+                isVisibleEnough = NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY && Math.random() < 0.25; break;
         }
 
         if((wantsToInterceptPlayer || wantsToCatchUpWithAlly)

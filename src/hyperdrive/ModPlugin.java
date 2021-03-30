@@ -52,7 +52,8 @@ public class ModPlugin extends BaseModPlugin {
             USABLE_AT_NEUTRON_STARS = false,
             NPC_FLEETS_CAN_USE_FOR_TRAVEL = true,
             NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = true,
-            SHOW_DEBUG_INFO_IN_DEV_MODE = false;
+            SHOW_DEBUG_INFO_IN_DEV_MODE = false,
+            NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY = true;
 
     public static void ensureReducedTimeLimitForMissions(boolean includeOldMissions) {
         if(REMOVE_ALL_DATA_AND_FEATURES) return;
@@ -144,6 +145,7 @@ public class ModPlugin extends BaseModPlugin {
                     USABLE_AT_NEUTRON_STARS = cfg.getBoolean("usableAtNeutronStars");
                     NPC_FLEETS_CAN_USE_FOR_TRAVEL = cfg.getBoolean("npcFleetsCanUseForTravel");
                     NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = cfg.getBoolean("npcFleetsCanUseToInterceptPlayer");
+                    NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY = cfg.getBoolean("npcFleetsCanInterceptPlayerIfUnawareOfIdentity");
 
                     SHOW_DEBUG_INFO_IN_DEV_MODE = cfg.getBoolean("showDebugInfoInDevMode");
                     REMOVE_ALL_DATA_AND_FEATURES = cfg.getBoolean("removeAllDataAndFeatures");
