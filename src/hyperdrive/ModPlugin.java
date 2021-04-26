@@ -11,7 +11,10 @@ import com.fs.starfarer.api.impl.campaign.intel.AnalyzeEntityMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.PersonBountyIntel;
 import com.fs.starfarer.api.impl.campaign.intel.SurveyPlanetMissionIntel;
+import com.fs.starfarer.api.impl.campaign.missions.*;
+import com.fs.starfarer.api.impl.campaign.missions.cb.CBStats;
 import data.scripts.VayraModPlugin;
+import hyperdrive.campaign.abilities.HyperdriveAbility;
 import org.json.JSONObject;
 import starship_legends.events.FamousDerelictIntel;
 
@@ -38,7 +41,8 @@ public class ModPlugin extends BaseModPlugin {
             CR_CONSUMPTION_MULT = 1,
             FUEL_CONSUMPTION_MULT = 1,
             FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = 0,
-            MISSION_TIME_LIMIT_MULT = 0.5f;
+            MISSION_TIME_LIMIT_MULT = 0.5f,
+            HALF_MISSION_TIME_LIMIT_MULT = 0.75f;
 
     public static int
             THROTTLE_BURN_LEVEL_ACTIVATION_KEY = 17;
@@ -138,6 +142,7 @@ public class ModPlugin extends BaseModPlugin {
                     FUEL_CONSUMPTION_MULT = (float) cfg.getDouble("fuelConsumptionMult");
                     FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = (float) cfg.getDouble("fuelConsumptionMultInNormalSpace");
                     MISSION_TIME_LIMIT_MULT = (float) cfg.getDouble("missionTimeLimitMult");
+                    HALF_MISSION_TIME_LIMIT_MULT = (MISSION_TIME_LIMIT_MULT + 1) / 2f;
 
                     SHOW_WARP_PULSE_ANIMATION = cfg.getBoolean("showWarpPulseAnimation");
                     USABLE_IN_HYPERSPACE = cfg.getBoolean("usableInHyperspace");
@@ -152,10 +157,28 @@ public class ModPlugin extends BaseModPlugin {
 
                     THROTTLE_BURN_LEVEL_ACTIVATION_KEY = cfg.getInt("throttleBurnActivationKey");
                     THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = cfg.getBoolean("throttleBurnLevelByDefaultDuringAutopilot");
+
+                    HyperdriveAbility.MIN_BURN_LEVEL = (int)Math.max(1, 3f * 0.5f / LIGHTYEARS_JUMPED_PER_BURN_LEVEL);
                 } catch (Exception e) { reportCrash(e); }
 
                 if(!REMOVE_ALL_DATA_AND_FEATURES) {
                     PersonBountyIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
+
+                    DeadDropMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+
+//                    SmugglingMission.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
+//                    SpySatDeployment.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
+
+//                    ExtractionMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    JailbreakMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    BaseDisruptIndustry.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    DisruptCompetitorMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    TacticallyBombardColony.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+
+//                    CBStats.DEFAULT_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.ENEMY_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.REMNANT_PLUS_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.REMNANT_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
 
                     ModManagerAPI mm = Global.getSettings().getModManager();
 

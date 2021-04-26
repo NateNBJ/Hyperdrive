@@ -44,7 +44,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			PULSE_AMOUNT = 40 * 85,
 			MOMENTUM_CARRY_DISTANCE = 1750f,
 			VELOCITY_LIMIT;
-	public static final int
+	public static int
 			MIN_BURN_LEVEL = 3;
 	public static final Color pulseColor = new Color(97, 136, 226, 255);
 
@@ -265,7 +265,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 					tooltip.addPara("Not enough fuel.", bad, pad);
 				}
 
-				if (bl < MIN_BURN_LEVEL) {
+				if ((int)Math.floor(fleet.getCurrBurnLevel()) < MIN_BURN_LEVEL) {
 					tooltip.addPara("Burn level must be at least " + MIN_BURN_LEVEL
 							+ ".", bad, pad);
 				}
@@ -484,7 +484,11 @@ public class HyperdriveAbility extends BaseDurationAbility {
 					&& other == Global.getSector().getPlayerFleet())
 				continue;
 
-			if(fleet.getFaction().getRelationshipLevel(other.getFaction()) == RepLevel.COOPERATIVE) continue;
+			if(fleet.getFaction().getRelationshipLevel(other.getFaction()) == RepLevel.COOPERATIVE
+				&& (other.isTransponderOn() || other.getVisibilityLevelTo(fleet).equals(SectorEntityToken.VisibilityLevel.COMPOSITION_AND_FACTION_DETAILS))) {
+
+				continue;
+			}
 
 			// Below is to imitate AI awareness that they shouldn't block each other from warping
 			if (fleet.isAIMode() && !visibleToPlayer && fleet.getFaction().getId().equals(other.getFaction().getId())) {
