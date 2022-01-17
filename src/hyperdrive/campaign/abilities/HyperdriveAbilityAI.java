@@ -59,6 +59,20 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
             }
         }
     }
+    private boolean isAvailable() {
+        if (!ModPlugin.NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER && !ModPlugin.NPC_FLEETS_CAN_USE_FOR_TRAVEL) return false;
+
+        if (fleet == null
+                || fleet.getAI() == null
+                || fleet.getBattle() != null
+                || ability == null
+                || ability.isActiveOrInProgress()
+                || ability.isOnCooldown()
+                || fleet.getFaction() == null
+                || ((HyperdriveAbility)ability).getFleet() == null) return false;
+
+        return true;
+    }
 
     @Override
     public void advance(float days) {
@@ -67,22 +81,13 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
             return;
         }
 
-        interval.advance(days * AI_FREQUENCY_MULT);
-
-        if (!ModPlugin.NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER && !ModPlugin.NPC_FLEETS_CAN_USE_FOR_TRAVEL) return;
-
-        if (!interval.intervalElapsed()
-                || fleet == null
-                || fleet.getAI() == null
-                || fleet.getBattle() != null
-                || ability == null
-                || ability.isActiveOrInProgress()
-                || ability.isOnCooldown()
-                || ((HyperdriveAbility)ability).getFleet() == null) return;
-
         if(fleet == CampaignScript.monitoredFleet) {
             boolean isMereBreakpointLine = true;
         }
+
+        interval.advance(days * AI_FREQUENCY_MULT);
+
+        if(!interval.intervalElapsed() || !isAvailable()) return;
 
         MemoryAPI mem = fleet.getMemoryWithoutUpdate();
 

@@ -13,8 +13,8 @@ import com.fs.starfarer.api.impl.campaign.abilities.BaseDurationAbility;
 import com.fs.starfarer.api.impl.campaign.abilities.InterdictionPulseAbility;
 import com.fs.starfarer.api.impl.campaign.ids.Pings;
 import com.fs.starfarer.api.impl.campaign.ids.Stats;
-import com.fs.starfarer.api.util.IntervalUtil;
 import com.fs.starfarer.campaign.CampaignEngine;
+import com.thoughtworks.xstream.XStream;
 import hyperdrive.CampaignScript;
 import org.lwjgl.util.vector.Vector2f;
 
@@ -30,7 +30,14 @@ import static hyperdrive.ModPlugin.reportCrash;
 public class HyperdriveAbility extends BaseDurationAbility {
 	public static final String ID = "sun_hd_hyperdrive";
 
-	static class Pulse {
+	public static class Pulse {
+		public static void configureXStream(XStream x) {
+			x.alias("sun_hd_p", HyperdriveAbility.Pulse.class);
+			x.aliasAttribute(HyperdriveAbility.Pulse.class, "rotation", "r");
+			x.aliasAttribute(HyperdriveAbility.Pulse.class, "initialProgress", "i");
+			x.aliasAttribute(HyperdriveAbility.Pulse.class, "center", "c");
+		}
+
 		float rotation = 0, initialProgress = 0;
 		Vector2f center = new Vector2f();
 	}
@@ -52,6 +59,23 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		VELOCITY_LIMIT = 60 * Global.getSettings().getSpeedPerBurnLevel();
 	}
 
+	public static void configureXStream(XStream x) {
+		x.alias("sun_hd_a", HyperdriveAbility.class);
+		x.aliasAttribute(HyperdriveAbility.class, "transitionStarted", "ts");
+		x.aliasAttribute(HyperdriveAbility.class, "directionAtActivation", "daa");
+		x.aliasAttribute(HyperdriveAbility.class, "forwardOffset", "fo");
+		x.aliasAttribute(HyperdriveAbility.class, "travelOffset", "to");
+		x.aliasAttribute(HyperdriveAbility.class, "fleetLocationLastFrame", "fl");
+		x.aliasAttribute(HyperdriveAbility.class, "initialVelocity", "iv");
+		x.aliasAttribute(HyperdriveAbility.class, "timeSinceStart", "tss");
+		x.aliasAttribute(HyperdriveAbility.class, "token", "t");
+		x.aliasAttribute(HyperdriveAbility.class, "pulsesSpawned", "ps");
+		x.aliasAttribute(HyperdriveAbility.class, "pulseFacing", "pf");
+		x.aliasAttribute(HyperdriveAbility.class, "pulses", "p");
+		x.aliasAttribute(HyperdriveAbility.class, "minWaveSize", "mw");
+		x.aliasAttribute(HyperdriveAbility.class, "originalSpriteSize", "os");
+		x.aliasAttribute(HyperdriveAbility.class, "fleet", "f");
+	}
     boolean transitionStarted = false;
     Vector2f directionAtActivation = null;
     Vector2f forwardOffset = new Vector2f();

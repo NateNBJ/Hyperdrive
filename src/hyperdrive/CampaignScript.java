@@ -6,7 +6,10 @@ import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
 import com.fs.starfarer.api.campaign.listeners.CampaignInputListener;
+import com.fs.starfarer.api.combat.EngagementResultAPI;
 import com.fs.starfarer.api.combat.ViewportAPI;
+import com.fs.starfarer.api.impl.campaign.ids.Factions;
+import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity;
 import com.fs.starfarer.api.input.InputEventAPI;
 import com.fs.starfarer.api.util.Misc;
 import hyperdrive.campaign.abilities.HyperdriveAbility;
@@ -36,7 +39,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
     }
 
     public CampaignScript() {
-        super(false);
+        super(true);
     }
 
     @Override
@@ -111,9 +114,15 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
             inputCooldown = Math.max(-1, inputCooldown - amount);
 
+            if(!ModPlugin.getInstance().readSettingsIfNecessary(false)) return;
+
             if(Global.getSector().isPaused()) return;
 
+            dialog = null;
+
             ModPlugin.ensureReducedTimeLimitForMissions(false);
+
+            CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
 
             if(skipThrottleForOneFrame) {
                 skipThrottleForOneFrame = false;
@@ -121,8 +130,9 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
                     || Global.getSector().getCampaignUI().isFollowingDirectCommand()) {
 
                 throttleBurnLevel = ModPlugin.THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT;
-            } else if(throttleBurnLevel) {
-                CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
+            } else if(throttleBurnLevel
+                    && (!ModPlugin.THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE || pf.getAbility(ID).isUsable())) {
+
                 Vector2f delta = new Vector2f(pf.getMoveDestination());
 
                 delta.translate(-pf.getLocation().x, -pf.getLocation().y); // Distance between fleet and destination
@@ -149,6 +159,65 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
                 distantEnoughLastFrame = distantEnough;
             }
         } catch (Exception e) { reportCrash(e); }
+    }
+
+    @Override
+    public void reportFleetSpawned(CampaignFleetAPI fleet) {
+        boolean available;
+
+        if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES) return;
+
+        switch (fleet.getFaction().getId()) {
+            case Factions.INDEPENDENT: available = ModPlugin.AVAILABLE_TO_INDEPENDENTS; break;
+            case Factions.PIRATES: available = ModPlugin.AVAILABLE_TO_PIRATES; break;
+            case Factions.REMNANTS: available = ModPlugin.AVAILABLE_TO_REMNANTS; break;
+            case Factions.PLAYER: {
+                available = ModPlugin.AVAILABLE_TO_PLAYER_FACTION
+                        && Global.getSector().getPlayerFleet().hasAbility(HyperdriveAbility.ID);
+                break;
+            }
+            default: {
+                available = fleet.getFaction().isShowInIntelTab()
+                        ? ModPlugin.AVAILABLE_TO_NPC_FACTIONS
+                        : ModPlugin.AVAILABLE_TO_OTHER;
+                break;
+            }
+        }
+
+        if(available) fleet.addAbility(HyperdriveAbility.ID);
+    }
+
+    @Override
+    public void reportShownInteractionDialog(InteractionDialogAPI dialog) {
+        super.reportShownInteractionDialog(dialog);
+
+        if(dialog.getInteractionTarget().getMemoryWithoutUpdate().contains("$saic_eventRef")
+                && !Global.getSector().getPlayerFleet().hasAbility(HyperdriveAbility.ID)
+                && ModPlugin.UNLOCKED_WHEN_TECH_CACHE_IS_FOUND) {
+
+            this.dialog = dialog; // This serves as a flag for after the engagement
+        }
+    }
+
+    InteractionDialogAPI dialog = null;
+
+    @Override
+    public void reportPlayerEngagement(EngagementResultAPI result) {
+        super.reportPlayerEngagement(result);
+
+        if(dialog != null && result.didPlayerWin()) {
+            TextPanelAPI text = dialog.getTextPanel();
+
+            ModPlugin.addAbilityIfNecessary();
+
+            text.addPara("Among the many datachips in the cache, your salvage team finds one that includes "
+                    + "specifications for a drive configuration that seems to be intended for the compound folding of "
+                    + "hyperspace. In theory, this would allow a fleet to instantaneously travel vast distances. "
+                    + "A thorough analysis by your best drive engineers and navigators determines that the "
+                    + "configuration could be safely applied to any standard Domain hyperdrive.");
+
+            AddRemoveCommodity.addAbilityGainText(HyperdriveAbility.ID, text);
+        }
     }
 
     public static CampaignFleetAPI overFleet = null, previousOverFleet = null, attachedFleet = null, monitoredFleet = null;
