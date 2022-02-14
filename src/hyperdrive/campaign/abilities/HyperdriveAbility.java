@@ -467,7 +467,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 
 		float cost = 0f;
 		for (FleetMemberAPI member : fleet.getFleetData().getMembersListCopy()) {
-			cost += member.getDeploymentPointsCost();
+			cost += member.getDeploymentCostSupplies();
 		}
 		return cost * ModPlugin.CR_CONSUMPTION_MULT * BASE_CR_COST_MULT;
 	}

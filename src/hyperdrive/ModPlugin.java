@@ -20,10 +20,6 @@ import com.thoughtworks.xstream.XStream;
 import data.scripts.VayraModPlugin;
 import hyperdrive.campaign.abilities.HyperdriveAbility;
 import org.json.JSONObject;
-import starship_legends.BattleReport;
-import starship_legends.RepChange;
-import starship_legends.RepRecord;
-import starship_legends.Trait;
 import starship_legends.events.FamousDerelictIntel;
 
 import java.awt.*;
@@ -42,13 +38,17 @@ public class ModPlugin extends BaseModPlugin {
     }
 
     public static float
+            ORIGINAL_BOUNTY_DURATION = 120,
+            ORIGINAL_DEAD_DROP_DURATION = 120,
+            ORIGINAL_FAMOUS_DERELICT_DURATION = 120,
+            ORIGINAL_VAYRA_BOUNTY_DURATION = 120,
             SENSOR_PROFILE_INCREASE = 5000,
             LIGHTYEARS_JUMPED_PER_BURN_LEVEL = 0.5f,
             FLEET_INTERFERENCE_RANGE_MULT = 1,
             CR_CONSUMPTION_MULT = 1,
             FUEL_CONSUMPTION_MULT = 1,
             FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = 0,
-            MISSION_TIME_LIMIT_MULT = 0.5f,
+            MISSION_TIME_LIMIT_MULT = 1.0f,
             HALF_MISSION_TIME_LIMIT_MULT = 0.75f;
 
     public static int
@@ -66,7 +66,7 @@ public class ModPlugin extends BaseModPlugin {
             NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = true,
             SHOW_DEBUG_INFO_IN_DEV_MODE = false,
             UNLOCKED_BY_DEFAULT = false,
-            UNLOCKED_WHEN_TECH_CACHE_IS_FOUND = true,
+            UNLOCKED_BY_DESTROYING_REMNANT_CAPITAL = true,
             AVAILABLE_TO_REMNANTS = true,
             AVAILABLE_TO_PIRATES = false,
             AVAILABLE_TO_INDEPENDENTS = false,
@@ -134,12 +134,6 @@ public class ModPlugin extends BaseModPlugin {
     public static boolean isTestingModeActive() {
         return !REMOVE_ALL_DATA_AND_FEATURES && SHOW_DEBUG_INFO_IN_DEV_MODE && Global.getSettings().isDevMode();
     }
-    public static boolean isUnlocked() {
-        if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES) return false;
-        else if(ModPlugin.UNLOCKED_BY_DEFAULT) return true;
-        else if(ModPlugin.UNLOCKED_WHEN_TECH_CACHE_IS_FOUND && isTechCacheLooted()) return true;
-        else return false;
-    }
     public static boolean isTechCacheLooted() {
         ScientistAICoreBarEventCreator saicbec = null;
 
@@ -147,7 +141,10 @@ public class ModPlugin extends BaseModPlugin {
             if(creator instanceof  ScientistAICoreBarEventCreator) saicbec = (ScientistAICoreBarEventCreator) creator;
         }
 
-        if(saicbec != null && BarEventManager.getInstance().getTimeout().getRemaining(saicbec) > 0) {
+        float timeout = saicbec == null ? 0 : BarEventManager.getInstance().getTimeout().getRemaining(saicbec);
+
+        // timeout seems to be positive at the beginning of a new game for some reason. 12.638144
+        if(timeout > 100) {
             for (IntelInfoPlugin intel : Global.getSector().getIntelManager().getIntel(ScientistAICoreIntel.class)) {
                 ScientistAICoreIntel saici = (ScientistAICoreIntel)intel;
 
@@ -196,7 +193,7 @@ public class ModPlugin extends BaseModPlugin {
             JSONObject cfg = Global.getSettings().getMergedJSONForMod(SETTINGS_PATH, ID);
 
             UNLOCKED_BY_DEFAULT = cfg.getBoolean("unlockedByDefault");
-            UNLOCKED_WHEN_TECH_CACHE_IS_FOUND = cfg.getBoolean("unlockedWhenTechCacheIsFound");
+            UNLOCKED_BY_DESTROYING_REMNANT_CAPITAL = cfg.getBoolean("unlockedByDestroyingRemnantCapital");
             AVAILABLE_TO_REMNANTS = cfg.getBoolean("availableToRemnants");
             AVAILABLE_TO_PIRATES = cfg.getBoolean("availableToPirates");
             AVAILABLE_TO_INDEPENDENTS = cfg.getBoolean("availableToIndependents");
@@ -231,9 +228,8 @@ public class ModPlugin extends BaseModPlugin {
             HyperdriveAbility.MIN_BURN_LEVEL = (int)Math.max(1, 3f * 0.5f / LIGHTYEARS_JUMPED_PER_BURN_LEVEL);
 
             if(!REMOVE_ALL_DATA_AND_FEATURES) {
-                PersonBountyIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
-
-                DeadDropMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+                PersonBountyIntel.MAX_DURATION = ORIGINAL_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
+                DeadDropMission.MISSION_DAYS = ORIGINAL_DEAD_DROP_DURATION * MISSION_TIME_LIMIT_MULT;
 
 //                    SmugglingMission.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
 //                    SpySatDeployment.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
@@ -253,17 +249,23 @@ public class ModPlugin extends BaseModPlugin {
 
                 if (mm.isModEnabled("sun_starship_legends")) {
                     try {
-                        FamousDerelictIntel.MAX_DURATION *= MISSION_TIME_LIMIT_MULT;
+                        FamousDerelictIntel.MAX_DURATION = ORIGINAL_FAMOUS_DERELICT_DURATION * MISSION_TIME_LIMIT_MULT;
                     } catch (Exception e) {
                     }
                 }
 
                 if (mm.isModEnabled("vayrasector")) {
                     try {
-                        VayraModPlugin.BOUNTY_DURATION *= MISSION_TIME_LIMIT_MULT;
+                        VayraModPlugin.BOUNTY_DURATION = ORIGINAL_VAYRA_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
                     } catch (Exception e) {
                     }
                 }
+
+                if (ModPlugin.UNLOCKED_BY_DEFAULT) {
+                    addAbilityIfNecessary();
+                }
+
+                ensureReducedTimeLimitForMissions(true);
             }
 
             settingsAlreadyRead = true;
@@ -277,6 +279,25 @@ public class ModPlugin extends BaseModPlugin {
     @Override
     public void onApplicationLoad() throws Exception {
         instance = this;
+
+        ORIGINAL_BOUNTY_DURATION = PersonBountyIntel.MAX_DURATION;
+        ORIGINAL_DEAD_DROP_DURATION = DeadDropMission.MISSION_DAYS;
+
+        ModManagerAPI mm = Global.getSettings().getModManager();
+
+        if (mm.isModEnabled("sun_starship_legends")) {
+            try {
+                ORIGINAL_FAMOUS_DERELICT_DURATION = FamousDerelictIntel.MAX_DURATION;
+            } catch (Exception e) {
+            }
+        }
+
+        if (mm.isModEnabled("vayrasector")) {
+            try {
+                ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
+            } catch (Exception e) {
+            }
+        }
     }
 
     @Override
@@ -290,12 +311,6 @@ public class ModPlugin extends BaseModPlugin {
             } else {
                 Global.getSector().addTransientScript(script = new CampaignScript());
                 Global.getSector().getListenerManager().addListener(script, true);
-
-                if (!Global.getSector().getPlayerFleet().hasAbility(HyperdriveAbility.ID) && isUnlocked()) {
-                    addAbilityIfNecessary();
-                }
-
-                ensureReducedTimeLimitForMissions(true);
             }
         } catch (Exception e) { reportCrash(e); }
     }

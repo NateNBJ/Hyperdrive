@@ -6,8 +6,13 @@ import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
 import com.fs.starfarer.api.campaign.listeners.CampaignInputListener;
+import com.fs.starfarer.api.characters.OfficerDataAPI;
+import com.fs.starfarer.api.characters.PersonAPI;
 import com.fs.starfarer.api.combat.EngagementResultAPI;
+import com.fs.starfarer.api.combat.MutableStat;
+import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.combat.ViewportAPI;
+import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity;
 import com.fs.starfarer.api.input.InputEventAPI;
@@ -16,6 +21,8 @@ import hyperdrive.campaign.abilities.HyperdriveAbility;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.util.vector.Vector2f;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import static hyperdrive.ModPlugin.reportCrash;
@@ -30,7 +37,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
         float dist = Misc.getDistance(pf.getLocation(), pf.getMoveDestination());
         float minDist = HyperdriveAbility.getMinimumJumpDistance() + HyperdriveAbility.MOMENTUM_CARRY_DISTANCE;
 
-        if(dist < minDist && (pf.isInHyperspace() || pf.isInHyperspaceTransition())) {
+        if(dist < minDist && pf.isInHyperspace()) {
             SectorEntityToken target = Global.getSector().getUIData().getCourseTarget();
             dist = Math.max(dist, Misc.getDistance(pf.getLocationInHyperspace(), target.getLocationInHyperspace()));
         }
@@ -116,9 +123,35 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
             if(!ModPlugin.getInstance().readSettingsIfNecessary(false)) return;
 
+            if(showMessageNextFrame && dialog != null) {
+                TextPanelAPI text = dialog.getTextPanel();
+
+                if(remnantCapitalWasDestroyed) {
+                    ModPlugin.addAbilityIfNecessary();
+
+                    text.addPara("One of your salvage technicians reports in from within the mangled wreckage of one "
+                            + "of the largest Remnant vessels. They say they've successfully accessed drive "
+                            + "configuration data that might explain "
+                            + "the atypical drive signature readings detected previously. A cursory inspection of the "
+                            + "configuration suggests that it could facilitate the compound folding of "
+                            + "hyperspace, allowing a fleet to instantaneously travel vast distances. "
+                            + "This is confirmed after a thorough analysis by your best drive engineers and navigators. "
+                            + "They also determine that the configuration could be applied safely to any standard "
+                            + "Domain hyperdrive.");
+
+                    AddRemoveCommodity.addAbilityGainText(HyperdriveAbility.ID, text);
+                } else {
+                    text.addPara("Atypical drive signature readings were detected during the engagement. None of the "
+                            + "drive configuration data is intact enough to yield an explanation for the anomaly.");
+                }
+
+                showMessageNextFrame = false;
+            }
+
             if(Global.getSector().isPaused()) return;
 
             dialog = null;
+            remnantCapitalWasDestroyed = false;
 
             ModPlugin.ensureReducedTimeLimitForMissions(false);
 
@@ -165,7 +198,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
     public void reportFleetSpawned(CampaignFleetAPI fleet) {
         boolean available;
 
-        if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES) return;
+        if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES || fleet == null || fleet.isPlayerFleet()) return;
 
         switch (fleet.getFaction().getId()) {
             case Factions.INDEPENDENT: available = ModPlugin.AVAILABLE_TO_INDEPENDENTS; break;
@@ -189,34 +222,56 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
     @Override
     public void reportShownInteractionDialog(InteractionDialogAPI dialog) {
-        super.reportShownInteractionDialog(dialog);
+        try {
+            CampaignFleetAPI fleet = null;
 
-        if(dialog.getInteractionTarget().getMemoryWithoutUpdate().contains("$saic_eventRef")
-                && !Global.getSector().getPlayerFleet().hasAbility(HyperdriveAbility.ID)
-                && ModPlugin.UNLOCKED_WHEN_TECH_CACHE_IS_FOUND) {
+            if (ModPlugin.UNLOCKED_BY_DESTROYING_REMNANT_CAPITAL
+                    && !Global.getSector().getPlayerFleet().hasAbility(HyperdriveAbility.ID)
+                    && dialog != null
+                    && dialog.getInteractionTarget() != null
+                    && dialog.getInteractionTarget() instanceof CampaignFleetAPI) {
 
-            this.dialog = dialog; // This serves as a flag for after the engagement
+                fleet = (CampaignFleetAPI) dialog.getInteractionTarget();
+            }
+
+            if (fleet != null && fleet.getFaction().getId().equals(Factions.REMNANTS)) {
+                this.dialog = dialog; // This serves as a flag for after the engagement
+            }
+        } catch (Exception e) {
+            ModPlugin.reportCrash(e);
         }
     }
 
     InteractionDialogAPI dialog = null;
+    boolean remnantCapitalWasDestroyed = false;
+    boolean showMessageNextFrame = true;
 
     @Override
     public void reportPlayerEngagement(EngagementResultAPI result) {
-        super.reportPlayerEngagement(result);
+        try {
+            if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES || dialog == null) return;
 
-        if(dialog != null && result.didPlayerWin()) {
-            TextPanelAPI text = dialog.getTextPanel();
+            EngagementResultForFleetAPI ef = !result.didPlayerWin()
+                    ? result.getWinnerResult()
+                    : result.getLoserResult();
 
-            ModPlugin.addAbilityIfNecessary();
+            for(FleetMemberAPI ship : ef.getDestroyed()) {
+                if(ship.getHullSpec().getHullSize() == ShipAPI.HullSize.CAPITAL_SHIP) {
+                    remnantCapitalWasDestroyed = true;
+                    break;
+                }
+            }
 
-            text.addPara("Among the many datachips in the cache, your salvage team finds one that includes "
-                    + "specifications for a drive configuration that seems to be intended for the compound folding of "
-                    + "hyperspace. In theory, this would allow a fleet to instantaneously travel vast distances. "
-                    + "A thorough analysis by your best drive engineers and navigators determines that the "
-                    + "configuration could be safely applied to any standard Domain hyperdrive.");
+            for(FleetMemberAPI ship : ef.getDisabled()) {
+                if(ship.getHullSpec().getHullSize() == ShipAPI.HullSize.CAPITAL_SHIP) {
+                    remnantCapitalWasDestroyed = true;
+                    break;
+                }
+            }
 
-            AddRemoveCommodity.addAbilityGainText(HyperdriveAbility.ID, text);
+            if(result.didPlayerWin()) showMessageNextFrame = true;
+        } catch (Exception e) {
+            ModPlugin.reportCrash(e);
         }
     }
 
