@@ -201,6 +201,7 @@ public class ModPlugin extends BaseModPlugin {
             AVAILABLE_TO_NPC_FACTIONS = cfg.getBoolean("availableToNpcFactions");
             AVAILABLE_TO_OTHER = cfg.getBoolean("availableToOther");
 
+            HyperdriveAbility.MIN_BURN_LEVEL = Math.max(1, cfg.getInt("minBurnLevelToJump"));
             SENSOR_PROFILE_INCREASE = (float) cfg.getDouble("SensorProfileIncrease");
             LIGHTYEARS_JUMPED_PER_BURN_LEVEL = (float) cfg.getDouble("LightYearsJumpedPerBurnLevel");
             FLEET_INTERFERENCE_RANGE_MULT = (float) cfg.getDouble("fleetInterferenceRangeMult");

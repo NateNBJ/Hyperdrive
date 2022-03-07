@@ -244,11 +244,12 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
     InteractionDialogAPI dialog = null;
     boolean remnantCapitalWasDestroyed = false;
-    boolean showMessageNextFrame = true;
+    boolean showMessageNextFrame = false;
 
     @Override
     public void reportPlayerEngagement(EngagementResultAPI result) {
         try {
+            // "dialog" should be null unless proper conditions are met
             if(ModPlugin.REMOVE_ALL_DATA_AND_FEATURES || dialog == null) return;
 
             EngagementResultForFleetAPI ef = !result.didPlayerWin()
