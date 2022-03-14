@@ -41,7 +41,7 @@ public class ModPlugin extends BaseModPlugin {
             ORIGINAL_BOUNTY_DURATION = 120,
             ORIGINAL_DEAD_DROP_DURATION = 120,
             ORIGINAL_FAMOUS_DERELICT_DURATION = 120,
-            ORIGINAL_VAYRA_BOUNTY_DURATION = 120,
+            ORIGINAL_VAYRA_BOUNTY_DURATION = Float.MIN_VALUE,
             SENSOR_PROFILE_INCREASE = 5000,
             LIGHTYEARS_JUMPED_PER_BURN_LEVEL = 0.5f,
             FLEET_INTERFERENCE_RANGE_MULT = 1,
@@ -257,6 +257,10 @@ public class ModPlugin extends BaseModPlugin {
 
                 if (mm.isModEnabled("vayrasector")) {
                     try {
+                        if(ORIGINAL_VAYRA_BOUNTY_DURATION == Float.MIN_VALUE) {
+                            ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
+                        }
+
                         VayraModPlugin.BOUNTY_DURATION = ORIGINAL_VAYRA_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
                     } catch (Exception e) {
                     }
@@ -293,12 +297,13 @@ public class ModPlugin extends BaseModPlugin {
             }
         }
 
-        if (mm.isModEnabled("vayrasector")) {
-            try {
-                ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
-            } catch (Exception e) {
-            }
-        }
+        // VayraModPlugin.BOUNTY_DURATION == 0 at this point
+//        if (mm.isModEnabled("vayrasector")) {
+//            try {
+//                ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
+//            } catch (Exception e) {
+//            }
+//        }
     }
 
     @Override
