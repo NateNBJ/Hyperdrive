@@ -279,10 +279,16 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				}
 			}
 
-			tooltip.addPara("Reduces the combat readiness of all ships, costing up to %s supplies to recover. "
-							+ "Also increases the range at which your fleet can be detected by %s units, revealing your "
-							+ "identity to fleets within range.", pad, highlight,
-					Misc.getRoundedValueMaxOneAfterDecimal(computeSupplyCost()), ((int)ModPlugin.SENSOR_PROFILE_INCREASE) + "");
+			if(ModPlugin.CR_CONSUMPTION_MULT > 0) {
+				tooltip.addPara("Reduces the combat readiness of all ships, costing up to %s supplies to recover.",
+						pad, highlight, Misc.getRoundedValueMaxOneAfterDecimal(computeSupplyCost()));
+			}
+
+			if(ModPlugin.SENSOR_PROFILE_INCREASE > 0) {
+				tooltip.addPara("Increases the range at which your " + (fleet.getNumShips() == 1 ? "ship" : "fleet")
+								+ " can be detected by %s units, revealing your identity to fleets within range.",
+						pad, highlight, ((int)ModPlugin.SENSOR_PROFILE_INCREASE) + "");
+			}
 
 			if(!isActiveOrInProgress()) {
 				if(!hasSufficientFuelForMinimalJump()) {
@@ -305,7 +311,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				}
 
 				List<FleetMemberAPI> nonReady = getNonReadyShips();
-				if (!nonReady.isEmpty()) {
+				if (ModPlugin.CR_CONSUMPTION_MULT > 0 && !nonReady.isEmpty()) {
 					tooltip.addPara("Not all ships have enough combat readiness to initiate a hyperwarp jump. Ships that require higher CR:", pad);
 					tooltip.beginGridFlipped(getTooltipWidth(), 1, 30, pad);
 					//tooltip.setGridLabelColor(bad);
@@ -383,7 +389,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 					&& (fleet.isAIMode() || (int)Math.floor(fleet.getCurrBurnLevel()) >= MIN_BURN_LEVEL)
 					&& hasSufficientFuelForMinimalJump()
 					&& (ModPlugin.USABLE_AT_NEUTRON_STARS || !isInSystemWithNeutronStar())
-					&& getNonReadyShips().isEmpty()
+					&& (ModPlugin.CR_CONSUMPTION_MULT <= 0 || getNonReadyShips().isEmpty())
 					&& isClearOfOtherFleets();
 		} catch (Exception e) { reportCrash(e); }
 

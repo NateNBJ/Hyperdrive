@@ -8,6 +8,7 @@ import com.fs.starfarer.api.campaign.CampaignUIAPI;
 import com.fs.starfarer.api.campaign.PersistentUIDataAPI;
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin;
 import com.fs.starfarer.api.campaign.comm.IntelManagerAPI;
+import com.fs.starfarer.api.campaign.econ.CommoditySpecAPI;
 import com.fs.starfarer.api.impl.campaign.intel.AnalyzeEntityMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel;
 import com.fs.starfarer.api.impl.campaign.intel.PersonBountyIntel;
@@ -19,6 +20,7 @@ import com.fs.starfarer.api.impl.campaign.missions.*;
 import com.thoughtworks.xstream.XStream;
 import data.scripts.VayraModPlugin;
 import hyperdrive.campaign.abilities.HyperdriveAbility;
+import lunalib.lunaSettings.LunaSettings;
 import org.json.JSONObject;
 import starship_legends.events.FamousDerelictIntel;
 
@@ -26,11 +28,126 @@ import java.awt.*;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.MissingResourceException;
 
 public class ModPlugin extends BaseModPlugin {
     public final static String ID = "sun_hyperdrive";
+    public final static String PREFIX = "sun_hd_";
     public final static String SETTINGS_PATH = "HYPERDRIVE_OPTIONS.ini";
     public final static Map<Class, Float> NORMAL_MISSION_DURATIONS = new HashMap<>();
+
+    static final String LUNALIB_ID = "lunalib";
+    static JSONObject settingsCfg = null;
+    static <T> T get(String id, Class<T> type) throws Exception {
+        if(Global.getSettings().getModManager().isModEnabled(LUNALIB_ID)) {
+            id = PREFIX + id;
+
+            if(type == Integer.class) return type.cast(LunaSettings.getInt(ModPlugin.ID, id));
+            if(type == Float.class) return type.cast(LunaSettings.getFloat(ModPlugin.ID, id));
+            if(type == Boolean.class) return type.cast(LunaSettings.getBoolean(ModPlugin.ID, id));
+            if(type == Double.class) return type.cast(LunaSettings.getDouble(ModPlugin.ID, id));
+            if(type == String.class) return type.cast(LunaSettings.getString(ModPlugin.ID, id));
+        } else {
+            if(settingsCfg == null) settingsCfg = Global.getSettings().getMergedJSONForMod(SETTINGS_PATH, ID);
+
+            if(type == Integer.class) return type.cast(settingsCfg.getInt(id));
+            if(type == Float.class) return type.cast((float) settingsCfg.getDouble(id));
+            if(type == Boolean.class) return type.cast(settingsCfg.getBoolean(id));
+            if(type == Double.class) return type.cast(settingsCfg.getDouble(id));
+            if(type == String.class) return type.cast(settingsCfg.getString(id));
+        }
+
+        throw new MissingResourceException("No setting found with id: " + id, type.getName(), id);
+    }
+    static int getInt(String id) throws Exception { return get(id, Integer.class); }
+    static double getDouble(String id) throws Exception { return get(id, Double.class); }
+    static float getFloat(String id) throws Exception { return get(id, Float.class); }
+    static boolean getBoolean(String id) throws Exception { return get(id, Boolean.class); }
+    static String getString(String id) throws Exception { return get(id, String.class); }
+    static boolean readSettings() throws Exception {
+        UNLOCKED_BY_DEFAULT = getBoolean("unlockedByDefault");
+        UNLOCKED_BY_DESTROYING_REMNANT_CAPITAL = getBoolean("unlockedByDestroyingRemnantCapital");
+        AVAILABLE_TO_REMNANTS = getBoolean("availableToRemnants");
+        AVAILABLE_TO_PIRATES = getBoolean("availableToPirates");
+        AVAILABLE_TO_INDEPENDENTS = getBoolean("availableToIndependents");
+        AVAILABLE_TO_PLAYER_FACTION = getBoolean("availableToPlayerFaction");
+        AVAILABLE_TO_NPC_FACTIONS = getBoolean("availableToNpcFactions");
+        AVAILABLE_TO_OTHER = getBoolean("availableToOther");
+
+        HyperdriveAbility.MIN_BURN_LEVEL = Math.max(1, getInt("minBurnLevelToJump"));
+        SENSOR_PROFILE_INCREASE = getFloat("SensorProfileIncrease");
+        LIGHTYEARS_JUMPED_PER_BURN_LEVEL = getFloat("LightYearsJumpedPerBurnLevel");
+        FLEET_INTERFERENCE_RANGE_MULT = getFloat("fleetInterferenceRangeMult");
+        CR_CONSUMPTION_MULT = getFloat("crConsumptionMult");
+        FUEL_CONSUMPTION_MULT = getFloat("fuelConsumptionMult");
+        FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = getFloat("fuelConsumptionMultInNormalSpace");
+        MISSION_TIME_LIMIT_MULT = getFloat("missionTimeLimitMult");
+        HALF_MISSION_TIME_LIMIT_MULT = (MISSION_TIME_LIMIT_MULT + 1) / 2f;
+
+        SHOW_WARP_PULSE_ANIMATION = getBoolean("showWarpPulseAnimation");
+        USABLE_IN_HYPERSPACE = getBoolean("usableInHyperspace");
+        USABLE_IN_NORMAL_SPACE = getBoolean("usableInNormalSpace");
+        USABLE_AT_NEUTRON_STARS = getBoolean("usableAtNeutronStars");
+        NPC_FLEETS_CAN_USE_FOR_TRAVEL = getBoolean("npcFleetsCanUseForTravel");
+        NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = getBoolean("npcFleetsCanUseToInterceptPlayer");
+        NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY = getBoolean("npcFleetsCanInterceptPlayerIfUnawareOfIdentity");
+
+        SHOW_DEBUG_INFO_IN_DEV_MODE = getBoolean("showDebugInfoInDevMode");
+        REMOVE_ALL_DATA_AND_FEATURES = getBoolean("removeAllDataAndFeatures");
+
+        THROTTLE_BURN_LEVEL_ACTIVATION_KEY = getInt("throttleBurnActivationKey");
+        THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = getBoolean("throttleBurnLevelByDefaultDuringAutopilot");
+        THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE = getBoolean("throttleOnlyWhenAbilityIsUsable");
+
+        HyperdriveAbility.MIN_BURN_LEVEL = (int)Math.max(1, 3f * 0.5f / LIGHTYEARS_JUMPED_PER_BURN_LEVEL);
+
+        if(!REMOVE_ALL_DATA_AND_FEATURES) {
+            PersonBountyIntel.MAX_DURATION = ORIGINAL_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
+            DeadDropMission.MISSION_DAYS = ORIGINAL_DEAD_DROP_DURATION * MISSION_TIME_LIMIT_MULT;
+
+//                    SmugglingMission.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
+//                    SpySatDeployment.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
+
+//                    ExtractionMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    JailbreakMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    BaseDisruptIndustry.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    DisruptCompetitorMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    TacticallyBombardColony.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
+
+//                    CBStats.DEFAULT_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.ENEMY_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.REMNANT_PLUS_DAYS *= MISSION_TIME_LIMIT_MULT;
+//                    CBStats.REMNANT_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
+
+            ModManagerAPI mm = Global.getSettings().getModManager();
+
+            if (mm.isModEnabled("sun_starship_legends")) {
+                try {
+                    FamousDerelictIntel.MAX_DURATION = ORIGINAL_FAMOUS_DERELICT_DURATION * MISSION_TIME_LIMIT_MULT;
+                } catch (Exception e) {
+                }
+            }
+
+            if (mm.isModEnabled("vayrasector")) {
+                try {
+                    if(ORIGINAL_VAYRA_BOUNTY_DURATION == Float.MIN_VALUE) {
+                        ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
+                    }
+
+                    VayraModPlugin.BOUNTY_DURATION = ORIGINAL_VAYRA_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
+                } catch (Exception e) {
+                }
+            }
+
+            if (ModPlugin.UNLOCKED_BY_DEFAULT) {
+                addAbilityIfNecessary();
+            }
+
+            ensureReducedTimeLimitForMissions(true);
+        }
+
+        return true;
+    }
 
     static {
         NORMAL_MISSION_DURATIONS.put(AnalyzeEntityMissionIntel.class, 120f);
@@ -190,88 +307,7 @@ public class ModPlugin extends BaseModPlugin {
         if(settingsAlreadyRead) return true;
 
         try {
-            JSONObject cfg = Global.getSettings().getMergedJSONForMod(SETTINGS_PATH, ID);
-
-            UNLOCKED_BY_DEFAULT = cfg.getBoolean("unlockedByDefault");
-            UNLOCKED_BY_DESTROYING_REMNANT_CAPITAL = cfg.getBoolean("unlockedByDestroyingRemnantCapital");
-            AVAILABLE_TO_REMNANTS = cfg.getBoolean("availableToRemnants");
-            AVAILABLE_TO_PIRATES = cfg.getBoolean("availableToPirates");
-            AVAILABLE_TO_INDEPENDENTS = cfg.getBoolean("availableToIndependents");
-            AVAILABLE_TO_PLAYER_FACTION = cfg.getBoolean("availableToPlayerFaction");
-            AVAILABLE_TO_NPC_FACTIONS = cfg.getBoolean("availableToNpcFactions");
-            AVAILABLE_TO_OTHER = cfg.getBoolean("availableToOther");
-
-            HyperdriveAbility.MIN_BURN_LEVEL = Math.max(1, cfg.getInt("minBurnLevelToJump"));
-            SENSOR_PROFILE_INCREASE = (float) cfg.getDouble("SensorProfileIncrease");
-            LIGHTYEARS_JUMPED_PER_BURN_LEVEL = (float) cfg.getDouble("LightYearsJumpedPerBurnLevel");
-            FLEET_INTERFERENCE_RANGE_MULT = (float) cfg.getDouble("fleetInterferenceRangeMult");
-            CR_CONSUMPTION_MULT = (float) cfg.getDouble("crConsumptionMult");
-            FUEL_CONSUMPTION_MULT = (float) cfg.getDouble("fuelConsumptionMult");
-            FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE = (float) cfg.getDouble("fuelConsumptionMultInNormalSpace");
-            MISSION_TIME_LIMIT_MULT = (float) cfg.getDouble("missionTimeLimitMult");
-            HALF_MISSION_TIME_LIMIT_MULT = (MISSION_TIME_LIMIT_MULT + 1) / 2f;
-
-            SHOW_WARP_PULSE_ANIMATION = cfg.getBoolean("showWarpPulseAnimation");
-            USABLE_IN_HYPERSPACE = cfg.getBoolean("usableInHyperspace");
-            USABLE_IN_NORMAL_SPACE = cfg.getBoolean("usableInNormalSpace");
-            USABLE_AT_NEUTRON_STARS = cfg.getBoolean("usableAtNeutronStars");
-            NPC_FLEETS_CAN_USE_FOR_TRAVEL = cfg.getBoolean("npcFleetsCanUseForTravel");
-            NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = cfg.getBoolean("npcFleetsCanUseToInterceptPlayer");
-            NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY = cfg.getBoolean("npcFleetsCanInterceptPlayerIfUnawareOfIdentity");
-
-            SHOW_DEBUG_INFO_IN_DEV_MODE = cfg.getBoolean("showDebugInfoInDevMode");
-            REMOVE_ALL_DATA_AND_FEATURES = cfg.getBoolean("removeAllDataAndFeatures");
-
-            THROTTLE_BURN_LEVEL_ACTIVATION_KEY = cfg.getInt("throttleBurnActivationKey");
-            THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = cfg.getBoolean("throttleBurnLevelByDefaultDuringAutopilot");
-            THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE = cfg.getBoolean("throttleOnlyWhenAbilityIsUsable");
-
-            HyperdriveAbility.MIN_BURN_LEVEL = (int)Math.max(1, 3f * 0.5f / LIGHTYEARS_JUMPED_PER_BURN_LEVEL);
-
-            if(!REMOVE_ALL_DATA_AND_FEATURES) {
-                PersonBountyIntel.MAX_DURATION = ORIGINAL_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
-                DeadDropMission.MISSION_DAYS = ORIGINAL_DEAD_DROP_DURATION * MISSION_TIME_LIMIT_MULT;
-
-//                    SmugglingMission.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
-//                    SpySatDeployment.MISSION_DAYS *= HALF_MISSION_TIME_LIMIT_MULT;
-
-//                    ExtractionMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    JailbreakMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    BaseDisruptIndustry.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    DisruptCompetitorMission.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    TacticallyBombardColony.MISSION_DAYS *= MISSION_TIME_LIMIT_MULT;
-
-//                    CBStats.DEFAULT_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    CBStats.ENEMY_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    CBStats.REMNANT_PLUS_DAYS *= MISSION_TIME_LIMIT_MULT;
-//                    CBStats.REMNANT_STATION_DAYS *= MISSION_TIME_LIMIT_MULT;
-
-                ModManagerAPI mm = Global.getSettings().getModManager();
-
-                if (mm.isModEnabled("sun_starship_legends")) {
-                    try {
-                        FamousDerelictIntel.MAX_DURATION = ORIGINAL_FAMOUS_DERELICT_DURATION * MISSION_TIME_LIMIT_MULT;
-                    } catch (Exception e) {
-                    }
-                }
-
-                if (mm.isModEnabled("vayrasector")) {
-                    try {
-                        if(ORIGINAL_VAYRA_BOUNTY_DURATION == Float.MIN_VALUE) {
-                            ORIGINAL_VAYRA_BOUNTY_DURATION = VayraModPlugin.BOUNTY_DURATION;
-                        }
-
-                        VayraModPlugin.BOUNTY_DURATION = ORIGINAL_VAYRA_BOUNTY_DURATION * MISSION_TIME_LIMIT_MULT;
-                    } catch (Exception e) {
-                    }
-                }
-
-                if (ModPlugin.UNLOCKED_BY_DEFAULT) {
-                    addAbilityIfNecessary();
-                }
-
-                ensureReducedTimeLimitForMissions(true);
-            }
+            readSettings();
 
             settingsAlreadyRead = true;
         } catch (Exception e) {
@@ -279,6 +315,17 @@ public class ModPlugin extends BaseModPlugin {
         }
 
         return true;
+    }
+
+    void removeScripts() {
+        try {
+            if(script != null) {
+                Global.getSector().removeTransientScript(script);
+                Global.getSector().removeListener(script);
+                Global.getSector().getListenerManager().removeListener(script);
+            }
+            Global.getSector().removeScriptsOfClass(CampaignScript.class);
+        } catch (Exception e) { reportCrash(e); }
     }
 
     @Override
@@ -309,6 +356,12 @@ public class ModPlugin extends BaseModPlugin {
     @Override
     public void onGameLoad(boolean newGame) {
         try {
+            removeScripts();
+
+            if(Global.getSettings().getModManager().isModEnabled(LUNALIB_ID)) {
+                LunaSettingsChangedListener.addToManagerIfNeeded();
+            }
+
             readSettingsIfNecessary(true);
 
             if(REMOVE_ALL_DATA_AND_FEATURES) {
@@ -323,14 +376,7 @@ public class ModPlugin extends BaseModPlugin {
 
     @Override
     public void beforeGameSave() {
-        try {
-            if(script != null) {
-                Global.getSector().removeTransientScript(script);
-                Global.getSector().removeListener(script);
-                Global.getSector().getListenerManager().removeListener(script);
-            }
-            Global.getSector().removeScriptsOfClass(CampaignScript.class);
-        } catch (Exception e) { reportCrash(e); }
+        removeScripts();
     }
 
     @Override
