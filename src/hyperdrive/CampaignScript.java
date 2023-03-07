@@ -6,10 +6,8 @@ import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.ai.CampaignFleetAIAPI;
 import com.fs.starfarer.api.campaign.ai.FleetAssignmentDataAPI;
 import com.fs.starfarer.api.campaign.listeners.CampaignInputListener;
-import com.fs.starfarer.api.characters.OfficerDataAPI;
-import com.fs.starfarer.api.characters.PersonAPI;
+import com.fs.starfarer.api.characters.AbilityPlugin;
 import com.fs.starfarer.api.combat.EngagementResultAPI;
-import com.fs.starfarer.api.combat.MutableStat;
 import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.fleet.FleetMemberAPI;
@@ -21,8 +19,6 @@ import hyperdrive.campaign.abilities.HyperdriveAbility;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.util.vector.Vector2f;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import static hyperdrive.ModPlugin.reportCrash;
@@ -61,7 +57,8 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
         SectorEntityToken target = Global.getSector().getUIData().getCourseTarget();
 
         if(inputCooldown > 0 || pf == null || target == null || ui == null || ui.isShowingDialog() || ui.isShowingMenu()
-                || !(ui.getCurrentCoreTab() == null) || Global.getSector().isInNewGameAdvance()) {
+                || !(ui.getCurrentCoreTab() == null) || Global.getSector().isInNewGameAdvance()
+                || pf.getAbility(ID) == null) {
 
             return;
         }
@@ -156,6 +153,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
             ModPlugin.ensureReducedTimeLimitForMissions(false);
 
             CampaignFleetAPI pf = Global.getSector().getPlayerFleet();
+            AbilityPlugin ability = pf.getAbility(ID);
 
             if(skipThrottleForOneFrame) {
                 skipThrottleForOneFrame = false;
@@ -164,7 +162,7 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
 
                 throttleBurnLevel = ModPlugin.THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT;
             } else if(throttleBurnLevel
-                    && (!ModPlugin.THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE || pf.getAbility(ID).isUsable())) {
+                    && (!ModPlugin.THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE || (ability != null && ability.isUsable()))) {
 
                 Vector2f delta = new Vector2f(pf.getMoveDestination());
 
