@@ -240,9 +240,9 @@ public class CampaignScript extends BaseCampaignEventListener implements EveryFr
         }
     }
 
-    InteractionDialogAPI dialog = null;
-    boolean remnantCapitalWasDestroyed = false;
-    boolean showMessageNextFrame = false;
+    transient InteractionDialogAPI dialog = null;
+    transient boolean remnantCapitalWasDestroyed = false;
+    transient boolean showMessageNextFrame = false;
 
     @Override
     public void reportPlayerEngagement(EngagementResultAPI result) {

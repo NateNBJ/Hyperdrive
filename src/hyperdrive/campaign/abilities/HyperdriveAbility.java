@@ -1,29 +1,28 @@
 package hyperdrive.campaign.abilities;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.LinkedList;
-import java.util.List;
-
+import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.SoundAPI;
 import com.fs.starfarer.api.campaign.*;
+import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.fleet.FleetMemberAPI;
+import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.impl.campaign.abilities.BaseDurationAbility;
 import com.fs.starfarer.api.impl.campaign.abilities.InterdictionPulseAbility;
 import com.fs.starfarer.api.impl.campaign.ids.Pings;
 import com.fs.starfarer.api.impl.campaign.ids.Stats;
+import com.fs.starfarer.api.ui.TooltipMakerAPI;
+import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.campaign.CampaignEngine;
 import com.thoughtworks.xstream.XStream;
 import hyperdrive.CampaignScript;
+import hyperdrive.ModPlugin;
 import org.lwjgl.util.vector.Vector2f;
 
-import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.combat.ViewportAPI;
-import com.fs.starfarer.api.graphics.SpriteAPI;
-import com.fs.starfarer.api.ui.TooltipMakerAPI;
-import com.fs.starfarer.api.util.Misc;
-import hyperdrive.ModPlugin;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
 
 import static hyperdrive.ModPlugin.reportCrash;
 
@@ -310,8 +309,8 @@ public class HyperdriveAbility extends BaseDurationAbility {
 							+ "stable hyperwarp drive bubble.", bad, pad);
 				}
 
-				List<FleetMemberAPI> nonReady = getNonReadyShips();
-				if (ModPlugin.CR_CONSUMPTION_MULT > 0 && !nonReady.isEmpty()) {
+				List<FleetMemberAPI> nonReady;
+				if (!ModPlugin.USABLE_WITH_MOTHBALLED_SHIPS && !(nonReady = getNonReadyShips()).isEmpty()) {
 					tooltip.addPara("Not all ships have enough combat readiness to initiate a hyperwarp jump. Ships that require higher CR:", pad);
 					tooltip.beginGridFlipped(getTooltipWidth(), 1, 30, pad);
 					//tooltip.setGridLabelColor(bad);
@@ -389,7 +388,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 					&& (fleet.isAIMode() || (int)Math.floor(fleet.getCurrBurnLevel()) >= MIN_BURN_LEVEL)
 					&& hasSufficientFuelForMinimalJump()
 					&& (ModPlugin.USABLE_AT_NEUTRON_STARS || !isInSystemWithNeutronStar())
-					&& (ModPlugin.CR_CONSUMPTION_MULT <= 0 || getNonReadyShips().isEmpty())
+					&& (ModPlugin.USABLE_WITH_MOTHBALLED_SHIPS || getNonReadyShips().isEmpty())
 					&& isClearOfOtherFleets();
 		} catch (Exception e) { reportCrash(e); }
 
@@ -473,7 +472,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 
 		float cost = 0f;
 		for (FleetMemberAPI member : fleet.getFleetData().getMembersListCopy()) {
-			cost += member.getDeploymentCostSupplies();
+			if(!member.isMothballed()) cost += member.getDeploymentCostSupplies();
 		}
 		return cost * ModPlugin.CR_CONSUMPTION_MULT * BASE_CR_COST_MULT;
 	}
