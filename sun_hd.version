@@ -1,11 +1,12 @@
 {
     "masterVersionFile":"https://raw.githubusercontent.com/NateNBJ/Hyperdrive/master/sun_hd.version",
+    "directDownloadURL":"https://github.com/NateNBJ/Hyperdrive/releases/latest/download/Hyperdrive.zip",
     "modName":"Hyperdrive",
     "modThreadId":17157,
     "modVersion":
     {
         "major":2,
-        "minor":3,
-        "patch":1,
+        "minor":4,
+        "patch":0,
     },
 }
