@@ -304,9 +304,14 @@ public class HyperdriveAbility extends BaseDurationAbility {
 							+ "making it impossible to establish a stable hyperwarp drive bubble.", bad, pad);
 				}
 
-				if (isInSystemWithNeutronStar()) {
+				if (!ModPlugin.USABLE_AT_NEUTRON_STARS && isInSystemWithNeutronStar()) {
 					tooltip.addPara("Interference from the nearby neutron star is making it impossible to establish a "
 							+ "stable hyperwarp drive bubble.", bad, pad);
+				}
+
+				if(!ModPlugin.USABLE_IN_ABYSSAL_HYPERSPACE && isInAbyssalHyperspace()) {
+					tooltip.addPara("Abyssal hyperspace makes it impossible to obtain the sensor readings needed to "
+							+ "coordinate a jump.", bad, pad);
 				}
 
 				List<FleetMemberAPI> nonReady;
@@ -388,6 +393,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 					&& (fleet.isAIMode() || (int)Math.floor(fleet.getCurrBurnLevel()) >= MIN_BURN_LEVEL)
 					&& hasSufficientFuelForMinimalJump()
 					&& (ModPlugin.USABLE_AT_NEUTRON_STARS || !isInSystemWithNeutronStar())
+					&& (ModPlugin.USABLE_IN_ABYSSAL_HYPERSPACE || !isInAbyssalHyperspace())
 					&& (ModPlugin.USABLE_WITH_MOTHBALLED_SHIPS || getNonReadyShips().isEmpty())
 					&& isClearOfOtherFleets();
 		} catch (Exception e) { reportCrash(e); }
@@ -486,6 +492,9 @@ public class HyperdriveAbility extends BaseDurationAbility {
 		return  (system.getStar() != null && system.getStar().getTypeId().contains("neutron"))
 				|| (system.getSecondary() != null && system.getSecondary().getTypeId().contains("neutron"))
 				|| (system.getTertiary() != null && system.getTertiary().getTypeId().contains("neutron"));
+	}
+	boolean isInAbyssalHyperspace() {
+		return Misc.isInAbyss(fleet);
 	}
 	boolean isClearOfOtherFleets() {
 		return getBlockingFleets().isEmpty();

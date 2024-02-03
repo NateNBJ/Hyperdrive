@@ -16,6 +16,7 @@ import com.fs.starfarer.api.impl.campaign.intel.bar.events.BarEventManager;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.ScientistAICoreBarEventCreator;
 import com.fs.starfarer.api.impl.campaign.intel.bar.events.ScientistAICoreIntel;
 import com.fs.starfarer.api.impl.campaign.missions.DeadDropMission;
+import com.fs.starfarer.api.impl.campaign.tutorial.TutorialMissionIntel;
 import com.thoughtworks.xstream.XStream;
 import data.scripts.VayraModPlugin;
 import hyperdrive.campaign.abilities.HyperdriveAbility;
@@ -87,6 +88,7 @@ public class ModPlugin extends BaseModPlugin {
         USABLE_IN_HYPERSPACE = getBoolean("usableInHyperspace");
         USABLE_IN_NORMAL_SPACE = getBoolean("usableInNormalSpace");
         USABLE_AT_NEUTRON_STARS = getBoolean("usableAtNeutronStars");
+        USABLE_IN_ABYSSAL_HYPERSPACE = getBoolean("usableInAbyssalHyperspace");
         USABLE_WITH_MOTHBALLED_SHIPS = getBoolean("usableWithMothballedShips");
         NPC_FLEETS_CAN_USE_FOR_TRAVEL = getBoolean("npcFleetsCanUseForTravel");
         NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = getBoolean("npcFleetsCanUseToInterceptPlayer");
@@ -179,6 +181,7 @@ public class ModPlugin extends BaseModPlugin {
             USABLE_IN_HYPERSPACE = true,
             USABLE_IN_NORMAL_SPACE = true,
             USABLE_AT_NEUTRON_STARS = false,
+            USABLE_IN_ABYSSAL_HYPERSPACE = false,
             USABLE_WITH_MOTHBALLED_SHIPS = false,
             NPC_FLEETS_CAN_USE_FOR_TRAVEL = true,
             NPC_FLEETS_CAN_USE_TO_INTERCEPT_PLAYER = true,
@@ -280,7 +283,7 @@ public class ModPlugin extends BaseModPlugin {
 
         Global.getSector().getCharacterData().addAbility(HyperdriveAbility.ID);
 
-        if (!hadAbilityAlready) {
+        if (!hadAbilityAlready && !TutorialMissionIntel.isTutorialInProgress()) {
             PersistentUIDataAPI.AbilitySlotsAPI slots = Global.getSector().getUIData().getAbilitySlotsAPI();
             int currBarIndex = slots.getCurrBarIndex();
             OUTER: for (int i = 0; i < 5; i++) {

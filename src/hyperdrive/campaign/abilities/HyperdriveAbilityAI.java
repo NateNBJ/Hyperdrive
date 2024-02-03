@@ -12,8 +12,8 @@ import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
 import com.fs.starfarer.api.util.IntervalUtil;
 import com.fs.starfarer.api.util.Misc;
 import hyperdrive.CampaignScript;
-import org.lwjgl.util.vector.Vector2f;
 import hyperdrive.ModPlugin;
+import org.lwjgl.util.vector.Vector2f;
 
 import static hyperdrive.ModPlugin.NPC_FLEETS_CAN_INTERCEPT_PLAYER_IF_UNAWARE_OF_IDENTITY;
 
@@ -183,6 +183,7 @@ public class HyperdriveAbilityAI extends BaseAbilityAI {
                 if( !(fleet.isAIMode() || (int)Math.floor(fleet.getCurrBurnLevel()) >= wd.MIN_BURN_LEVEL)) HyperdriveAbility.print("     too slow");
                 if( !wd.hasSufficientFuelForMinimalJump()) HyperdriveAbility.print("     insufficient fuel");
                 if( !(ModPlugin.USABLE_AT_NEUTRON_STARS || !wd.isInSystemWithNeutronStar())) HyperdriveAbility.print("     neutron star");
+                if( !(ModPlugin.USABLE_IN_ABYSSAL_HYPERSPACE || !wd.isInAbyssalHyperspace())) HyperdriveAbility.print("     abyssal hyperspace");
                 if( !wd.getNonReadyShips().isEmpty()) HyperdriveAbility.print("     non ready ships");
                 if( !wd.isClearOfOtherFleets()) HyperdriveAbility.print("     interference");
 
