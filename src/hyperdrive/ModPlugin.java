@@ -200,24 +200,19 @@ public class ModPlugin extends BaseModPlugin {
 
     public static ModPlugin getInstance() { return instance; }
     public static void ensureReducedTimeLimitForMissions(boolean includeOldMissions) {
-        if(REMOVE_ALL_DATA_AND_FEATURES) return;
+        if(REMOVE_ALL_DATA_AND_FEATURES || MISSION_TIME_LIMIT_MULT == 1f) return;
 
         IntelManagerAPI manager = Global.getSector().getIntelManager();
 
         for(Map.Entry<Class, Float> entry : NORMAL_MISSION_DURATIONS.entrySet()) {
-            float newLimit = entry.getValue() * MISSION_TIME_LIMIT_MULT;
+            if(BaseMissionIntel.class.isAssignableFrom(entry.getKey())) {
+                float newLimit = entry.getValue() * MISSION_TIME_LIMIT_MULT;
+                Collection<IntelInfoPlugin> missions = manager.getCommQueue(entry.getKey());
 
-            if(!BaseMissionIntel.class.isAssignableFrom(entry.getKey())) continue;
+                if(includeOldMissions) missions.addAll(manager.getIntel(entry.getKey()));
 
-            Collection<IntelInfoPlugin> missions = manager.getCommQueue(entry.getKey());
-
-            if(includeOldMissions) missions.addAll(manager.getIntel(entry.getKey()));
-
-
-            for (IntelInfoPlugin intel : missions) {
-                BaseMissionIntel bmi = (BaseMissionIntel) intel;
-                if (bmi.getDuration() > newLimit) {
-//                    HyperdriveAbility.print("Reduced duration for mission: " + bmi.getSmallDescriptionTitle());
+                for(IntelInfoPlugin intel : missions) {
+                    BaseMissionIntel bmi = (BaseMissionIntel) intel;
                     bmi.setDuration(newLimit);
                 }
             }
