@@ -8,6 +8,7 @@ import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.impl.campaign.abilities.BaseDurationAbility;
 import com.fs.starfarer.api.impl.campaign.abilities.InterdictionPulseAbility;
+import com.fs.starfarer.api.impl.campaign.ids.MemFlags;
 import com.fs.starfarer.api.impl.campaign.ids.Pings;
 import com.fs.starfarer.api.impl.campaign.ids.Stats;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
@@ -16,6 +17,7 @@ import com.fs.starfarer.campaign.CampaignEngine;
 import com.thoughtworks.xstream.XStream;
 import hyperdrive.CampaignScript;
 import hyperdrive.ModPlugin;
+import nomadic_survival.campaign.intel.AnomalyIntel;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.awt.*;
@@ -376,6 +378,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			fleet.getCommanderStats().getDynamic().getStat(Stats.NAVIGATION_PENALTY_MULT).modifyMult(getModId(), 1 - level);
 			fleet.getStats().getFuelUseHyperMult().modifyMult(getModId(), 0, "Hyperwarp jump");
 			fleet.getStats().removeTemporaryMod("going_through_jump_point");
+			fleet.getMemoryWithoutUpdate().set(MemFlags.NO_HIGH_BURN_TOPOGRAPHY_READINGS, true, 0.1f);
 
 			if(chargeSound != null) chargeSound.setLocation(fleet.getLocation().x, fleet.getLocation().y);
 		} catch (Exception e) { reportCrash(e); }
@@ -471,7 +474,9 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				? ModPlugin.FUEL_CONSUMPTION_MULT
 				: ModPlugin.FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE;
 
-		return fleet.getLogistics().getFuelCostPerLightYear() * distanceInLY * consumptionMult;
+		return consumptionMult * (fleet.isInHyperspace() && ModPlugin.USE_NS_FUEL_CONSUMPTION_CALCULATION
+				? AnomalyIntel.getInstance().getFuelConsumedToTravel(distanceInLY)
+				: fleet.getLogistics().getFuelCostPerLightYear() * distanceInLY);
 	}
 	float computeSupplyCost() {
 		if (ModPlugin.CR_CONSUMPTION_MULT <= 0) return 0f;

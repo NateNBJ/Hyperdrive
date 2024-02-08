@@ -31,9 +31,40 @@ import java.util.Map;
 import java.util.MissingResourceException;
 
 public class ModPlugin extends BaseModPlugin {
+    static class Version {
+        public final int MAJOR, MINOR, PATCH, RC;
+
+        public Version(String versionStr) {
+            String[] temp = versionStr.replace("Starsector ", "").replace("a", "").split("-RC");
+
+            RC = temp.length > 1 ? Integer.parseInt(temp[1]) : 0;
+
+            temp = temp[0].split("\\.");
+
+            MAJOR = temp.length > 0 ? Integer.parseInt(temp[0]) : 0;
+            MINOR = temp.length > 1 ? Integer.parseInt(temp[1]) : 0;
+            PATCH = temp.length > 2 ? Integer.parseInt(temp[2]) : 0;
+        }
+
+        public boolean isOlderThan(Version other, boolean ignoreRC) {
+            if(MAJOR < other.MAJOR) return true;
+            if(MINOR < other.MINOR) return true;
+            if(PATCH < other.PATCH) return true;
+            if(!ignoreRC && !other.isOlderThan(this, true) && RC < other.RC) return true;
+
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%d.%d.%d%s-RC%d", MAJOR, MINOR, PATCH, (MAJOR >= 1 ? "" : "a"), RC);
+        }
+    }
+
     public final static String ID = "sun_hyperdrive";
     public final static String PREFIX = "sun_hd_";
     public final static String SETTINGS_PATH = "HYPERDRIVE_OPTIONS.ini";
+    public final static Version MIN_NS_VERSION_WITH_FUEL_CONSUMPTION_CALCULATION_METHOD = new Version("1.4.0");
     public final static Map<Class, Float> NORMAL_MISSION_DURATIONS = new HashMap<>();
 
     static final String LUNALIB_ID = "lunalib";
@@ -145,10 +176,24 @@ public class ModPlugin extends BaseModPlugin {
                 addAbilityIfNecessary();
             }
 
+            checkForNomadicSurvivalAlternateFuelCalculationCompatibility("sun_nomadic_survival");
+            checkForNomadicSurvivalAlternateFuelCalculationCompatibility("sun_perilous_expanse");
+
             ensureReducedTimeLimitForMissions(true);
         }
 
         return true;
+    }
+    static void checkForNomadicSurvivalAlternateFuelCalculationCompatibility(String modID) {
+        ModManagerAPI mm = Global.getSettings().getModManager();
+
+        if(mm.isModEnabled(modID)) {
+            Version currentVersionOfNS = new Version(mm.getModSpec(modID).getVersion());
+
+            if(!currentVersionOfNS.isOlderThan(MIN_NS_VERSION_WITH_FUEL_CONSUMPTION_CALCULATION_METHOD, true)) {
+                USE_NS_FUEL_CONSUMPTION_CALCULATION = true;
+            }
+        }
     }
 
     static {
@@ -174,6 +219,7 @@ public class ModPlugin extends BaseModPlugin {
             THROTTLE_BURN_LEVEL_ACTIVATION_KEY = 17;
 
     public static boolean
+            USE_NS_FUEL_CONSUMPTION_CALCULATION = false,
             REMOVE_ALL_DATA_AND_FEATURES = false,
             THROTTLE_BURN_LEVEL_BY_DEFAULT_DURING_AUTOPILOT = false,
             THROTTLE_ONLY_WHEN_ABILITY_IS_USABLE = false,
