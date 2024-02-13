@@ -474,7 +474,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 				? ModPlugin.FUEL_CONSUMPTION_MULT
 				: ModPlugin.FUEL_CONSUMPTION_MULT_IN_NORMAL_SPACE;
 
-		return consumptionMult * (fleet.isInHyperspace() && ModPlugin.USE_NS_FUEL_CONSUMPTION_CALCULATION
+		return consumptionMult * (fleet.isInHyperspace() && ModPlugin.USE_NS_FUEL_CONSUMPTION_CALCULATION && AnomalyIntel.getInstance() != null
 				? AnomalyIntel.getInstance().getFuelConsumedToTravel(distanceInLY)
 				: fleet.getLogistics().getFuelCostPerLightYear() * distanceInLY);
 	}
