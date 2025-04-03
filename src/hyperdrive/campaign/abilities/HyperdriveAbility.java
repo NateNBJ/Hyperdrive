@@ -53,7 +53,8 @@ public class HyperdriveAbility extends BaseDurationAbility {
 			MOMENTUM_CARRY_DISTANCE = 1750f,
 			VELOCITY_LIMIT;
 	public static int
-			MIN_BURN_LEVEL = 3;
+			MIN_BURN_LEVEL = 3,
+			MAX_BURN_LEVEL = 60;
 	public static final Color pulseColor = new Color(97, 136, 226, 255);
 
     static {
@@ -109,7 +110,7 @@ public class HyperdriveAbility extends BaseDurationAbility {
 
 		if(getFleet().getVelocity().length() <= 0) return result;
 
-		int bl = (int)Math.floor(getFleet().getCurrBurnLevel() - 1);
+		int bl = (int)Math.min(MAX_BURN_LEVEL, Math.floor(getFleet().getCurrBurnLevel() - 1));
 		result.set(getFleet().getVelocity()).normalise().scale(bl * getDistancePerBurn());
 
 		return result;
